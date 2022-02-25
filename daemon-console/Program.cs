@@ -26,7 +26,8 @@ namespace daemon_console
             {
                 string Url = Models.URLCreator.GetSite();
                 //string Url = Models.URLCreator.GetFilesByDrive("b!8gBvwHeRuECjw4izLaZWvHdN3S3rz75Kvhyrf0kHHx9SiVwv01P_Solc6sU6SAea");
-                RunAsync(Url).GetAwaiter().GetResult();
+                JObject ApiResult = RunAsync(Url).GetAwaiter().GetResult();
+                ConvertToSiteObjects(ApiResult);
             }
             catch (Exception ex)
             {
@@ -47,12 +48,12 @@ namespace daemon_console
             {
                 if (!site.webUrl.Contains("/personal/"))
                 {
-                    Console.WriteLine(site.name);
+                    Console.WriteLine(site.id);
                 }
             }
         }
 
-        private static async Task RunAsync(string parWebUrl = null)
+        private static async Task<JObject> RunAsync(string parWebUrl = null)
         {
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
 
@@ -111,6 +112,7 @@ namespace daemon_console
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("Scope provided is not supported");
                 Console.ResetColor();
+                throw new Exception("No token acquired");
             }
 
             if (result != null)
@@ -121,9 +123,10 @@ namespace daemon_console
                 //await apiCaller.CallWebApiAndProcessResultASync($"{config.ApiUrl}v1.0/drives/b!m35i7pw9xk63vzHyWjqDzk_Pb0yQdL9KojjHhNPF3LPszlgMqS9gTLhxAfLg6bTB/root/children", result.AccessToken, Display);
                 JObject ApiResult = await apiCaller.CallWebApiAndProcessResultASync(webURL, result.AccessToken);
                 //Display(ApiResult);
-                ConvertToSiteObjects(ApiResult);
+                return ApiResult;
                 
             }
+            throw new Exception("No apiresult came back");
         }
 
         /// <summary>

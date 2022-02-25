@@ -11,7 +11,13 @@ namespace daemon_console.Models
         public string MicrosoftGraphDownloadUrl { get; set; }
         public DateTime createdDateTime { get; set; }
         public string eTag { get; set; }
-        public string id { get; set; }
+        private List<string> _id;
+        public string id 
+            {
+            get { return _id; }
+            set { 
+                _id = value.Split(",").ToList<string>();  } 
+            }
         public DateTime lastModifiedDateTime { get; set; }
         public string name { get; set; }
         public string webUrl { get; set; }
@@ -22,5 +28,6 @@ namespace daemon_console.Models
         public ParentReference parentReference { get; set; }
         public File file { get; set; }
         public FileSystemInfo fileSystemInfo { get; set; }
+
     }
 }
