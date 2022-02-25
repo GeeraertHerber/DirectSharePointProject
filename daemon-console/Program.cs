@@ -39,6 +39,19 @@ namespace daemon_console
             Console.ReadKey();
         }
 
+        private static void ConvertToSiteObjects(JObject jsonObject)
+        {
+            string stringedObject = jsonObject.ToString();
+            Models.Root SiteObject = JsonConvert.DeserializeObject<Models.Root>(stringedObject);
+            foreach (var site in SiteObject.value)
+            {
+                if (!site.webUrl.Contains("/personal/"))
+                {
+                    Console.WriteLine(site.name);
+                }
+            }
+        }
+
         private static async Task RunAsync(string parWebUrl = null)
         {
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
@@ -107,7 +120,8 @@ namespace daemon_console
                 Console.WriteLine(webURL);
                 //await apiCaller.CallWebApiAndProcessResultASync($"{config.ApiUrl}v1.0/drives/b!m35i7pw9xk63vzHyWjqDzk_Pb0yQdL9KojjHhNPF3LPszlgMqS9gTLhxAfLg6bTB/root/children", result.AccessToken, Display);
                 JObject ApiResult = await apiCaller.CallWebApiAndProcessResultASync(webURL, result.AccessToken);
-                Display(ApiResult);
+                //Display(ApiResult);
+                ConvertToSiteObjects(ApiResult);
                 
             }
         }
