@@ -34,7 +34,7 @@ namespace daemon_console
         /// <param name="webApiUrl">URL of the web API to call (supposed to return Json)</param>
         /// <param name="accessToken">Access token used as a bearer security token to call the web API</param>
         /// <param name="processResult">Callback used to process the result of the call to the web API</param>
-        public async Task CallWebApiAndProcessResultASync(string webApiUrl, string accessToken, Action<JObject> processResult)
+        public async Task<JObject> CallWebApiAndProcessResultASync(string webApiUrl, string accessToken)
         {
             if (!string.IsNullOrEmpty(accessToken))
             {
@@ -52,7 +52,8 @@ namespace daemon_console
                     /// Console.WriteLine(child);
                     JObject result = JsonConvert.DeserializeObject(json) as JObject;
                     Console.ForegroundColor = ConsoleColor.Gray;
-                    processResult(result);
+                    Console.ResetColor();
+                    return result;
                 }
                 else
                 {
@@ -63,8 +64,14 @@ namespace daemon_console
                     // Note that if you got reponse.Code == 403 and reponse.content.code == "Authorization_RequestDenied"
                     // this is because the tenant admin as not granted consent for the application to call the Web API
                     Console.WriteLine($"Content: {content}");
+                    Console.ResetColor();
+                    return null;
                 }
-                Console.ResetColor();
+               
+            }
+            else
+            {
+                return null;
             }
         }
     }

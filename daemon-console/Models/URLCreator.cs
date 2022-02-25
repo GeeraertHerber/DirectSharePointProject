@@ -6,7 +6,7 @@ namespace daemon_console.Models
 {
     public class URLCreator
     {
-        public static string GetSite(string SiteId)
+        public static string GetSite(string SiteId = "")
         {
             return $"sites/{SiteId}";
         }

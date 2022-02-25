@@ -24,7 +24,7 @@ namespace daemon_console
         {
             try
             {
-                string Url = Models.URLCreator.GetFilesByDrive("c06f00f2-9177-40b8-a3c3-88b32da656bc");
+                string Url = Models.URLCreator.GetSite();
                 //string Url = Models.URLCreator.GetFilesByDrive("b!8gBvwHeRuECjw4izLaZWvHdN3S3rz75Kvhyrf0kHHx9SiVwv01P_Solc6sU6SAea");
                 RunAsync(Url).GetAwaiter().GetResult();
             }
@@ -106,8 +106,9 @@ namespace daemon_console
                 var apiCaller = new ProtectedApiCallHelper(httpClient);
                 Console.WriteLine(webURL);
                 //await apiCaller.CallWebApiAndProcessResultASync($"{config.ApiUrl}v1.0/drives/b!m35i7pw9xk63vzHyWjqDzk_Pb0yQdL9KojjHhNPF3LPszlgMqS9gTLhxAfLg6bTB/root/children", result.AccessToken, Display);
-                await apiCaller.CallWebApiAndProcessResultASync(webURL, result.AccessToken, Display);
-
+                JObject ApiResult = await apiCaller.CallWebApiAndProcessResultASync(webURL, result.AccessToken);
+                Display(ApiResult);
+                
             }
         }
 
