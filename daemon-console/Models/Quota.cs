@@ -7,9 +7,9 @@ namespace daemon_console.Models
     internal class Quota
     {
         public int deleted { get; set; }
-        public int remaining { get; set; }
+        public long remaining { get; set; }
         public string state { get; set; }
-        public int total { get; set; }
+        public long total { get; set; }
         public int used { get; set; }
     }
 }

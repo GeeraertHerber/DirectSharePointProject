@@ -34,9 +34,13 @@ namespace daemon_console
                 foreach(var site in siteObject.value)
                 {
                     string siteUrl = ApiCaller.GetDriveBySite(site.siteId);
-                    JObject siteResult = ApiManager.RunAsync(siteUrl).GetAwaiter().GetResult();
-                    Site conSite = (Site)ApiManager.ConvertToSiteObjects(siteResult);
-                    Console.WriteLine(conSite.name);
+                    JObject driveResult = ApiManager.RunAsync(siteUrl).GetAwaiter().GetResult();
+                    if (driveResult != null)
+                    {
+                        Drive conDrive = (Drive)ApiManager.ConvertToDriveObject(driveResult);
+                        Console.WriteLine(conDrive.name);
+                    }
+                    
                     //Console.WriteLine($"Site name: {site.name} \t\t Site ID: {site.siteId}");
                 }
 

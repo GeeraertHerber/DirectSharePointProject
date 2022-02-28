@@ -18,21 +18,49 @@ namespace daemon_console.Models
         
         public static object ConvertToSiteObjects(JObject jsonObject)
         {
-            if (jsonObject["value"].Count() > 1)
+            if (jsonObject != null)
             {
-                string stringedObject = jsonObject.ToString();
-                SiteCall SiteObject = JsonConvert.DeserializeObject<SiteCall>(stringedObject);
-                return SiteObject;
-            }
-            else if (jsonObject["value"].Count() == 1)
-            {
-                string stringedObject = jsonObject.ToString();
-                Site SiteObject = JsonConvert.DeserializeObject<Site>(stringedObject);
-                return SiteObject;
+                try
+                {
+                    if (jsonObject["value"].Count() > 1)
+                    {
+                        string stringedObject = jsonObject.ToString();
+                        SiteCall SiteObject = JsonConvert.DeserializeObject<SiteCall>(stringedObject);
+                        return SiteObject;
+                    }
+                    else if (jsonObject["value"].Count() == 1)
+                    {
+                        string stringedObject = jsonObject.ToString();
+                        Site SiteObject = JsonConvert.DeserializeObject<Site>(stringedObject);
+                        return SiteObject;
+                    }
+                }
+                catch
+                {
+                    string stringedObject = jsonObject.ToString();
+                    Error errorObject = JsonConvert.DeserializeObject<Error>(stringedObject);
+                    return errorObject;
+                }
+                return null; 
             }
             else
             {
                 return null;
+            }
+           
+        }
+
+        public static object ConvertToDriveObject(JObject jsonObject)
+        {
+            if (jsonObject != null)
+            {
+                string stringedObject = jsonObject.ToString();
+                Drive driveObject = JsonConvert.DeserializeObject<Drive>(stringedObject);
+                return driveObject;
+            }
+            else
+            {
+                return null ;
             }
         }
 
