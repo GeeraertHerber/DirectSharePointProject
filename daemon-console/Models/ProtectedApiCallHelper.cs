@@ -63,7 +63,7 @@ namespace daemon_console
                     RootError error = JsonConvert.DeserializeObject<RootError>(content);
 
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"Failed to call the web API: {error.Error.Code}");
+                    Console.WriteLine($"Failed to call the web API: {error.Error.Message}");
                     
 
                     // Note that if you got reponse.Code == 403 and reponse.content.code == "Authorization_RequestDenied"

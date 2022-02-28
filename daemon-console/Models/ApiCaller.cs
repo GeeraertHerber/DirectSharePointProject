@@ -17,14 +17,15 @@ namespace daemon_console.Models
             return $"sites/{SiteId}/drive";
         }
 
-        public static string GetFilesByDrive(string DriveId, bool RootOnnly = false)
+        public static string GetFilesByDrive(string DriveId, bool RootOnly = false)
         {
-            if (RootOnnly)
-                return $"/drives/{DriveId}/root/children";
+            if (!RootOnly)
+                return $"drives/{DriveId}/root/children";
             else
             {
                 return $"";
             }
         }
+        
     }
 }

@@ -24,34 +24,51 @@ namespace daemon_console
     {
         static void Main(string[] args)
         {
-            try
+            bool testing = false;
+            if (testing == true)
             {
-                string url = ApiCaller.GetSite();
-                //string Url = URLCreator.GetFilesByDrive("b!8gBvwHeRuECjw4izLaZWvHdN3S3rz75Kvhyrf0kHHx9SiVwv01P_Solc6sU6SAea");
-                JObject apiResult = ApiManager.RunAsync(url).GetAwaiter().GetResult();
-                SiteCall siteObject = (SiteCall)ApiManager.ConvertToSiteObjects(apiResult);
-                //Console.WriteLine(siteObject.value.First().siteId);
-                foreach(var site in siteObject.value)
+                try
                 {
-                    string siteUrl = ApiCaller.GetDriveBySite(site.siteId);
-                    JObject driveResult = ApiManager.RunAsync(siteUrl).GetAwaiter().GetResult();
-                    if (driveResult != null)
+                    //string url = ApiCaller.GetSite();
+                    string url = ApiCaller.GetSite("b!8gBvwHeRuECjw4izLaZWvHdN3S3rz75Kvhyrf0kHHx9SiVwv01P_Solc6sU6SAea");
+                    JObject apiResult = ApiManager.RunAsync(url).GetAwaiter().GetResult();
+                    SiteCall siteObject = (SiteCall)ApiManager.ConvertToSiteObjects(apiResult);
+                    //Console.WriteLine(siteObject.value.First().siteId);
+                    if (siteObject != null)
                     {
-                        Drive conDrive = (Drive)ApiManager.ConvertToDriveObject(driveResult);
-                        Console.WriteLine(conDrive.name);
+                        foreach (var site in siteObject.value)
+                        {
+                            string siteUrl = ApiCaller.GetDriveBySite(site.siteId);
+                            JObject driveResult = ApiManager.RunAsync(siteUrl).GetAwaiter().GetResult();
+                            Console.WriteLine(site.id);
+                            if (driveResult != null)
+                            {
+                                //Drive conDrive = (Drive)ApiManager.ConvertToDriveObject(driveResult);
+                                //string fileUrl = ApiCaller.GetFilesByDrive(conDrive.webUrl);
+                                //JObject files = ApiManager.RunAsync(fileUrl).GetAwaiter().GetResult();
+                                //Console.WriteLine(files.ToString());
+                            }
+
+                            //Console.WriteLine($"Site name: {site.name} \t\t Site ID: {site.siteId}");
+                        }
+
                     }
-                    
-                    //Console.WriteLine($"Site name: {site.name} \t\t Site ID: {site.siteId}");
+                }
+                catch (Exception ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine(ex.Message);
+                    Console.ResetColor();
                 }
 
-            }
-            catch (Exception ex)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine(ex.Message);
-                Console.ResetColor();
-            }
 
+
+            }
+            else if (testing == false)
+            {
+                Console.WriteLine("Entering test program");
+                daemon_console.OtherMain.MainTester();
+            }
             Console.WriteLine("Press any key to exit");
             Console.ReadKey();
         }        

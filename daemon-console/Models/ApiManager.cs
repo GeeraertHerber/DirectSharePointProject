@@ -143,6 +143,21 @@ namespace daemon_console.Models
                 //await apiCaller.CallWebApiAndProcessResultASync($"{config.ApiUrl}v1.0/drives/b!m35i7pw9xk63vzHyWjqDzk_Pb0yQdL9KojjHhNPF3LPszlgMqS9gTLhxAfLg6bTB/root/children", result.AccessToken, Display);
                 JObject ApiResult = await apiCaller.CallWebApiAndProcessResultASync(webURL, result.AccessToken);
                 //Display(ApiResult);
+                string ApiResultStringed = ApiResult.ToString();
+                if (ApiResult.ContainsKey("error"))
+                {
+                    RootError error = JsonConvert.DeserializeObject<RootError>(ApiResultStringed);
+
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine($"Failed to call the web API: {error.Error.Message}");
+
+
+                    // Note that if you got reponse.Code == 403 and reponse.content.code == "Authorization_RequestDenied"
+                    // this is because the tenant admin as not granted consent for the application to call the Web API
+                    Console.WriteLine($"Content: {error.Error.Message}");
+                    Console.ResetColor();
+                    return null;
+                }
                 return ApiResult;
 
             }

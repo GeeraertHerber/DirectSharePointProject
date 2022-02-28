@@ -7,7 +7,7 @@ namespace daemon_console.Models
 {
     internal class RootError
     {
-        [JsonProperty("erro")]
+        [JsonProperty("error")]
         public Error Error { get; set; }
     }
 }
