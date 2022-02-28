@@ -4,7 +4,7 @@ using System.Text;
 
 namespace daemon_console.Models
 {
-    public class URLCreator
+    internal class ApiCaller
     {
         public static string GetSite(string SiteId = "")
         {

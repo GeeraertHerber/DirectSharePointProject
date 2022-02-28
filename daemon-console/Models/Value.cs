@@ -11,13 +11,8 @@ namespace daemon_console.Models
         public string MicrosoftGraphDownloadUrl { get; set; }
         public DateTime createdDateTime { get; set; }
         public string eTag { get; set; }
-        private List<string> _id;
-        public string id 
-            {
-            get { return _id; }
-            set { 
-                _id = value.Split(",").ToList<string>();  } 
-            }
+        private string _id;
+        public string id { get; set; }
         public DateTime lastModifiedDateTime { get; set; }
         public string name { get; set; }
         public string webUrl { get; set; }
