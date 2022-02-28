@@ -6,5 +6,6 @@ namespace daemon_console.Models
 {
     internal class Owner
     {
+        public Group group { get; set; }
     }
 }
