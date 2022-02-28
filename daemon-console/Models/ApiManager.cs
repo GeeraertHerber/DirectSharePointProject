@@ -52,15 +52,24 @@ namespace daemon_console.Models
 
         public static object ConvertToDriveObject(JObject jsonObject)
         {
-            if (jsonObject != null)
+            try
             {
-                string stringedObject = jsonObject.ToString();
-                Drive driveObject = JsonConvert.DeserializeObject<Drive>(stringedObject);
-                return driveObject;
+                if (jsonObject != null)
+                {
+                    string stringedObject = jsonObject.ToString();
+                    Drive driveObject = JsonConvert.DeserializeObject<Drive>(stringedObject);
+                    return driveObject;
+                }
+                else
+                {
+                    return null;
+                }
             }
-            else
+            catch
             {
-                return null ;
+                string stringObject = jsonObject.ToString();
+                Error error = JsonConvert.DeserializeObject<Error>(stringObject);
+                return error;
             }
         }
 

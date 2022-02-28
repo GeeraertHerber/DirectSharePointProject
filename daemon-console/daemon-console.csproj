@@ -22,10 +22,4 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Models\Drive\" />
-    <Folder Include="Models\File\" />
-    <Folder Include="Models\Site\" />
-  </ItemGroup>
 </Project>

@@ -8,6 +8,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using daemon_console.Models;
 
 namespace daemon_console
 {
@@ -57,13 +58,17 @@ namespace daemon_console
                 }
                 else
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"Failed to call the web API: {response.StatusCode}");
                     string content = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine(content);
+                    RootError error = JsonConvert.DeserializeObject<RootError>(content);
+
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine($"Failed to call the web API: {error.Error.Code}");
+                    
 
                     // Note that if you got reponse.Code == 403 and reponse.content.code == "Authorization_RequestDenied"
                     // this is because the tenant admin as not granted consent for the application to call the Web API
-                    Console.WriteLine($"Content: {content}");
+                    Console.WriteLine($"Content: {error.Error.Message}");
                     Console.ResetColor();
                     return null;
                 }
