@@ -29,12 +29,14 @@ namespace daemon_console
                 string url = ApiCaller.GetSite();
                 //string Url = URLCreator.GetFilesByDrive("b!8gBvwHeRuECjw4izLaZWvHdN3S3rz75Kvhyrf0kHHx9SiVwv01P_Solc6sU6SAea");
                 JObject apiResult = ApiManager.RunAsync(url).GetAwaiter().GetResult();
-                SiteCall siteObject = ApiManager.ConvertToSiteObjects(apiResult);
+                SiteCall siteObject = (SiteCall)ApiManager.ConvertToSiteObjects(apiResult);
                 //Console.WriteLine(siteObject.value.First().siteId);
                 foreach(var site in siteObject.value)
                 {
-                    string siteUrl = ApiCaller.GetSite(site.siteId);
-                    JObject siteResult = ApiManager.RunAsync(siteUrl);
+                    string siteUrl = ApiCaller.GetDriveBySite(site.siteId);
+                    JObject siteResult = ApiManager.RunAsync(siteUrl).GetAwaiter().GetResult();
+                    Site conSite = (Site)ApiManager.ConvertToSiteObjects(siteResult);
+                    Console.WriteLine(conSite.name);
                     //Console.WriteLine($"Site name: {site.name} \t\t Site ID: {site.siteId}");
                 }
 

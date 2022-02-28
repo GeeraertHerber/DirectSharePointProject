@@ -16,11 +16,24 @@ namespace daemon_console.Models
     {
 
         
-        public static SiteCall ConvertToSiteObjects(JObject jsonObject)
+        public static object ConvertToSiteObjects(JObject jsonObject)
         {
-            string stringedObject = jsonObject.ToString();
-            SiteCall SiteObject = JsonConvert.DeserializeObject<SiteCall>(stringedObject);
-            return SiteObject;
+            if (jsonObject["value"].Count() > 1)
+            {
+                string stringedObject = jsonObject.ToString();
+                SiteCall SiteObject = JsonConvert.DeserializeObject<SiteCall>(stringedObject);
+                return SiteObject;
+            }
+            else if (jsonObject["value"].Count() == 1)
+            {
+                string stringedObject = jsonObject.ToString();
+                Site SiteObject = JsonConvert.DeserializeObject<Site>(stringedObject);
+                return SiteObject;
+            }
+            else
+            {
+                return null;
+            }
         }
 
         public static async Task<JObject> RunAsync(string parWebUrl = null)
