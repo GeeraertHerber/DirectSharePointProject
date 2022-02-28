@@ -16,17 +16,11 @@ namespace daemon_console.Models
     {
 
         
-        public static void ConvertToSiteObjects(JObject jsonObject)
+        public static SiteCall ConvertToSiteObjects(JObject jsonObject)
         {
             string stringedObject = jsonObject.ToString();
-            Root SiteObject = JsonConvert.DeserializeObject<Root>(stringedObject);
-            foreach (var site in SiteObject.value)
-            {
-                if (!site.webUrl.Contains("/personal/"))
-                {
-                    Console.WriteLine(site.id);
-                }
-            }
+            SiteCall SiteObject = JsonConvert.DeserializeObject<SiteCall>(stringedObject);
+            return SiteObject;
         }
 
         public static async Task<JObject> RunAsync(string parWebUrl = null)

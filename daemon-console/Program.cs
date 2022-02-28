@@ -26,10 +26,18 @@ namespace daemon_console
         {
             try
             {
-                string Url = ApiCaller.GetSite();
+                string url = ApiCaller.GetSite();
                 //string Url = URLCreator.GetFilesByDrive("b!8gBvwHeRuECjw4izLaZWvHdN3S3rz75Kvhyrf0kHHx9SiVwv01P_Solc6sU6SAea");
-                JObject ApiResult = ApiManager.RunAsync(Url).GetAwaiter().GetResult();
-                ApiManager.ConvertToSiteObjects(ApiResult);
+                JObject apiResult = ApiManager.RunAsync(url).GetAwaiter().GetResult();
+                SiteCall siteObject = ApiManager.ConvertToSiteObjects(apiResult);
+                //Console.WriteLine(siteObject.value.First().siteId);
+                foreach(var site in siteObject.value)
+                {
+                    string siteUrl = ApiCaller.GetSite(site.siteId);
+                    JObject siteResult = ApiManager.RunAsync(siteUrl);
+                    //Console.WriteLine($"Site name: {site.name} \t\t Site ID: {site.siteId}");
+                }
+
             }
             catch (Exception ex)
             {

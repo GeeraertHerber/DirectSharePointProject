@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-
+using daemon_console.Models;
 namespace daemon_console.Models
 {
     internal class ApiCaller
     {
+       
         public static string GetSite(string SiteId = "")
         {
             return $"sites/{SiteId}";
