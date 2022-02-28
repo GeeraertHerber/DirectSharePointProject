@@ -73,6 +73,29 @@ namespace daemon_console.Models
             }
         }
 
+        public static object ConvertToFile(JObject jsonObject)
+        {
+            try
+            {
+                if (jsonObject != null)
+                {
+                    string stringedObject = jsonObject.ToString();
+                    FileRoot driveObject = JsonConvert.DeserializeObject<FileRoot>(stringedObject);
+                    return driveObject;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            catch
+            {
+                string stringObject = jsonObject.ToString();
+                Error error = JsonConvert.DeserializeObject<Error>(stringObject);
+                return error;
+            }
+        }
+
         public static async Task<JObject> RunAsync(string parWebUrl = null)
         {
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
@@ -137,29 +160,62 @@ namespace daemon_console.Models
 
             if (result != null)
             {
-                var httpClient = new HttpClient();
-                var apiCaller = new ProtectedApiCallHelper(httpClient);
-                Console.WriteLine(webURL);
-                //await apiCaller.CallWebApiAndProcessResultASync($"{config.ApiUrl}v1.0/drives/b!m35i7pw9xk63vzHyWjqDzk_Pb0yQdL9KojjHhNPF3LPszlgMqS9gTLhxAfLg6bTB/root/children", result.AccessToken, Display);
-                JObject ApiResult = await apiCaller.CallWebApiAndProcessResultASync(webURL, result.AccessToken);
-                //Display(ApiResult);
-                string ApiResultStringed = ApiResult.ToString();
-                if (ApiResult.ContainsKey("error"))
+                try
                 {
-                    RootError error = JsonConvert.DeserializeObject<RootError>(ApiResultStringed);
+                    var httpClient = new HttpClient();
+                    var apiCaller = new ProtectedApiCallHelper(httpClient);
+                    Console.WriteLine(webURL);
+                    //await apiCaller.CallWebApiAndProcessResultASync($"{config.ApiUrl}v1.0/drives/b!m35i7pw9xk63vzHyWjqDzk_Pb0yQdL9KojjHhNPF3LPszlgMqS9gTLhxAfLg6bTB/root/children", result.AccessToken, Display);
+                    JObject ApiResult = await apiCaller.CallWebApiAndProcessResultASync(webURL, result.AccessToken);
+                    //Display(ApiResult);
+                    if (ApiResult == null)
+                    {
+                        RootError error = new RootError();
+                        error.Error = new Error();
+                        error.Error.Code = "Problem occured: empty string";
+                        error.Error.Message = "Not good";
+                        error.Error.InnerError = new InnerError
+                        {
+                            RequestId = Guid.NewGuid(),
+                            Date = DateTime.Now,
+                            ClientRequestId = Guid.NewGuid(),
+                            Code = error.Error.Code
+                        };
+                        error.Error.InnerError.
+                        error.Error.InnerError.
+                        error.Error.InnerError.
+                        error.Error.InnerError.
+                        return null;
+                        
+                    }
+                    else if (ApiResult.ContainsKey("error") && ApiResult != null)
+                    {
+                        RootError error = JsonConvert.DeserializeObject<RootError>(ApiResult.ToString());
 
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"Failed to call the web API: {error.Error.Message}");
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"Failed to call the web API: {error.Error.Message}");
 
 
-                    // Note that if you got reponse.Code == 403 and reponse.content.code == "Authorization_RequestDenied"
-                    // this is because the tenant admin as not granted consent for the application to call the Web API
-                    Console.WriteLine($"Content: {error.Error.Message}");
-                    Console.ResetColor();
+                        // Note that if you got reponse.Code == 403 and reponse.content.code == "Authorization_RequestDenied"
+                        // this is because the tenant admin as not granted consent for the application to call the Web API
+                        Console.WriteLine($"Content: {error.Error.Message}");
+                        Console.ResetColor();
+                        return null;
+                    }
+                    return ApiResult;
+                }
+                catch
+                {
+                    RootError error = new RootError();
+                    error.Error = new Error();
+                    error.Error.Code = "Problem occured: empty string";
+                    error.Error.Message = "Not good";
+                    error.Error.InnerError.RequestId = Guid.NewGuid();
+                    error.Error.InnerError.Date = DateTime.Now;
+                    error.Error.InnerError.ClientRequestId = Guid.NewGuid();
+                    error.Error.InnerError.Code = error.Error.Code;
                     return null;
                 }
-                return ApiResult;
-
             }
             throw new Exception("No apiresult came back");
         }

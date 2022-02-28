@@ -34,7 +34,8 @@ namespace daemon_console.Models
         public CreatedBy createdBy { get; set; }
         public LastModifiedBy lastModifiedBy { get; set; }
         public ParentReference parentReference { get; set; }
-        public File file { get; set; }
+        [JsonProperty("file")]
+        public SiteFile File { get; set; }
         public FileSystemInfo fileSystemInfo { get; set; }
 
     }

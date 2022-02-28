@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Newtonsoft.Json; 
 
 namespace daemon_console.Models
 {
     public class FileSystemInfo
     {
-        public DateTime createdDateTime { get; set; }
-        public DateTime lastModifiedDateTime { get; set; }
+        [JsonProperty("createdDateTime")]
+        public DateTime CreatedDateTime { get; set; }
+        [JsonProperty("lastModifiedDateTime")]
+        public DateTime LastModifiedDateTime { get; set; }
     }
 }

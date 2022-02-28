@@ -8,12 +8,13 @@ namespace daemon_console.Models
     internal class InnerError
     {
         [JsonProperty("code")]
-        public string code { get; set; }
-        public DateTime date { get; set; }
+        public string Code { get; set; }
+        [JsonProperty("date")]
+        public DateTime Date { get; set; }
         [JsonProperty("request-id")]
-        public Guid requestId { get; set; }
+        public Guid RequestId { get; set; }
         [JsonProperty("client-request-id")]
-        public Guid clientRequestId { get; set; }
+        public Guid ClientRequestId { get; set; }
         
         
     }

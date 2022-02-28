@@ -37,12 +37,17 @@ namespace daemon_console
                             {
                                 Drive driveObject = (Drive)ApiManager.ConvertToDriveObject(driveResult);
 
-                                string fileUrl = ApiCaller.GetFilesByDrive(driveObject.webUrl);
-                                JObject files = ApiManager.RunAsync(fileUrl).GetAwaiter().GetResult();
-                                if (files != null)
+                                string fileUrl = ApiCaller.GetFilesByDrive(driveObject.Id);
+                                if (fileUrl != null)
                                 {
-                                    Console.WriteLine(files.ToString());
+                                    JObject files = ApiManager.RunAsync(fileUrl).GetAwaiter().GetResult();
+                                    if (files != null)
+                                    {
+                                        FileRoot fileObject = (FileRoot)ApiManager.ConvertToFile(files);
+                                        Console.WriteLine(fileObject.Files.Count());
+                                    }
                                 }
+                                
                             }
                         }
                         
