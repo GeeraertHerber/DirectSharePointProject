@@ -28,15 +28,17 @@ namespace daemon_console
                 {
                     foreach (var site in siteObject.value)
                     {
-                        if (!site.webUrl.Contains("/personal") && site.name != null && site.webUrl.Contains("ProjectFalcon-UXtest"))
+                        if (!site.webUrl.Contains("/personal") && site.name != null && site.webUrl.Contains("Retail"))
                         {
-                            url = $"sites/{site.siteId}/lists?expand=fields";
+                            Console.WriteLine(site.siteId);
+                            /*
+                            url = $"sites/{site.siteId}/columns";
                             JObject result = ApiManager.RunAsync(url).GetAwaiter().GetResult();
-                            Console.WriteLine(result.ToString());
-                            /*string siteUrl = ApiCaller.GetDriveBySite(site.siteId);
+                            Console.WriteLine(result.ToString());*/
+                            string siteUrl = ApiCaller.GetDriveBySite(site.siteId);
                             JObject driveResult = ApiManager.RunAsync(siteUrl).GetAwaiter().GetResult();
                             //Console.WriteLine(site.id);
-                            if (driveResult != null )
+                            if (driveResult != null)
                             {
                                 Drive driveObject = (Drive)ApiManager.ConvertToDriveObject(driveResult);
 
@@ -45,8 +47,8 @@ namespace daemon_console
                                 {
                                     GetInsidesDir(dirUrl, driveObject);
                                 }
-                                
-                            }*/
+
+                            }
                         }
                     }
                 }
@@ -71,12 +73,9 @@ namespace daemon_console
                 {
                    /* Console.WriteLine(dirContent.name);
                     Console.WriteLine(dirContent.eTag);*/
-                    if (dirContent.name.Contains("Hello_world"))
-                    {
-                        string fileUrl = $"/drives/{driveObject.Id}/items/{dirContent.id}";
-                        GetFile(fileUrl);
-                    }
-                }
+                    string fileUrl = $"/drives/{driveObject.Id}/items/{dirContent.id}?expand=fields"; //
+                    GetFile(fileUrl);
+                                   }
                 else if(dirContent.folder.ChildCount > 0)
                 {
                     Console.WriteLine(dirContent.folder.ChildCount);
