@@ -59,7 +59,6 @@ namespace daemon_console
                 else
                 {
                     string content = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine(content);
                     RootError error = JsonConvert.DeserializeObject<RootError>(content);
 
                     Console.ForegroundColor = ConsoleColor.Red;

@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace daemon_console.Models
 {
-    internal class FileRoot
+    internal class DirRoot
     {
         [JsonProperty("@odata.context")]
         public string DataContext { get; set; }

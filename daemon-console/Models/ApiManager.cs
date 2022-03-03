@@ -80,7 +80,7 @@ namespace daemon_console.Models
                 if (jsonObject != null)
                 {
                     string stringedObject = jsonObject.ToString();
-                    FileRoot driveObject = JsonConvert.DeserializeObject<FileRoot>(stringedObject);
+                    DirRoot driveObject = JsonConvert.DeserializeObject<DirRoot>(stringedObject);
                     return driveObject;
                 }
                 else
@@ -96,19 +96,17 @@ namespace daemon_console.Models
             }
         }
 
-        public static async Task<JObject> RunAsync(string parWebUrl = null)
+        public static async Task<JObject> RunAsync(string webUrl = null, bool callGraph = true)
         {
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
 
-            string webURL = "";
-
-            if (parWebUrl == null)
+            if (webUrl == null)
             {
-                webURL = $"{config.ApiUrl}v1.0/sites";
+                webUrl = $"{config.ApiUrl}v1.0/sites";
             }
-            else
+            else if (callGraph == true)
             {
-                webURL = $"{config.ApiUrl}v1.0/{parWebUrl}";
+                webUrl = $"{config.ApiUrl}v1.0/{webUrl}";
             }
 
             // You can run this sample using ClientSecret or Certificate. The code will differ only when instantiating the IConfidentialClientApplication
@@ -139,7 +137,7 @@ namespace daemon_console.Models
             // a tenant administrator. 
             string[] scopes = new string[] { $"{config.ApiUrl}.default" };
 
-            AuthenticationResult result = null;
+            AuthenticationResult result;
             try
             {
                 result = await app.AcquireTokenForClient(scopes)
@@ -164,27 +162,28 @@ namespace daemon_console.Models
                 {
                     var httpClient = new HttpClient();
                     var apiCaller = new ProtectedApiCallHelper(httpClient);
-                    Console.WriteLine(webURL);
+                    Console.WriteLine(webUrl);
                     //await apiCaller.CallWebApiAndProcessResultASync($"{config.ApiUrl}v1.0/drives/b!m35i7pw9xk63vzHyWjqDzk_Pb0yQdL9KojjHhNPF3LPszlgMqS9gTLhxAfLg6bTB/root/children", result.AccessToken, Display);
-                    JObject ApiResult = await apiCaller.CallWebApiAndProcessResultASync(webURL, result.AccessToken);
+                    JObject ApiResult = await apiCaller.CallWebApiAndProcessResultASync(webUrl, result.AccessToken);
                     //Display(ApiResult);
                     if (ApiResult == null)
                     {
-                        RootError error = new RootError();
-                        error.Error = new Error();
-                        error.Error.Code = "Problem occured: empty string";
-                        error.Error.Message = "Not good";
-                        error.Error.InnerError = new InnerError
+                        RootError error = new RootError
                         {
-                            RequestId = Guid.NewGuid(),
-                            Date = DateTime.Now,
-                            ClientRequestId = Guid.NewGuid(),
-                            Code = error.Error.Code
+                            Error = new Error
+                            {
+                                Code = "Problem occured: empty string",
+                                Message = "Not good",
+                                InnerError = new InnerError
+                                {
+                                    RequestId = Guid.NewGuid(),
+                                    Date = DateTime.Now,
+                                    ClientRequestId = Guid.NewGuid(),
+                                    Code = "Problem occured: empty string"
+                                }
+                            }
                         };
-                        error.Error.InnerError.
-                        error.Error.InnerError.
-                        error.Error.InnerError.
-                        error.Error.InnerError.
+                        
                         return null;
                         
                     }
@@ -206,14 +205,22 @@ namespace daemon_console.Models
                 }
                 catch
                 {
-                    RootError error = new RootError();
-                    error.Error = new Error();
-                    error.Error.Code = "Problem occured: empty string";
-                    error.Error.Message = "Not good";
-                    error.Error.InnerError.RequestId = Guid.NewGuid();
-                    error.Error.InnerError.Date = DateTime.Now;
-                    error.Error.InnerError.ClientRequestId = Guid.NewGuid();
-                    error.Error.InnerError.Code = error.Error.Code;
+                    RootError error = new RootError
+                    {
+                        Error = new Error
+                        {
+                            Code = "Problem occured: empty string",
+                            Message = "Not good",
+                            InnerError = new InnerError
+                            {
+                                RequestId = Guid.NewGuid(),
+                                Date = DateTime.Now,
+                                ClientRequestId = Guid.NewGuid(),
+                                Code = "Problem occured: empty string"
+                            }
+                        }
+                    };
+                   
                     return null;
                 }
             }

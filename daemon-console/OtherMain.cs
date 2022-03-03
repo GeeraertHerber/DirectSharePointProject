@@ -28,30 +28,26 @@ namespace daemon_console
                 {
                     foreach (var site in siteObject.value)
                     {
-                        if (!site.webUrl.Contains("/personal"))
+                        if (!site.webUrl.Contains("/personal") && site.name != null && site.webUrl.Contains("ProjectFalcon-UXtest"))
                         {
-                            string siteUrl = ApiCaller.GetDriveBySite(site.siteId);
+                            url = $"sites/{site.siteId}/lists?expand=fields";
+                            JObject result = ApiManager.RunAsync(url).GetAwaiter().GetResult();
+                            Console.WriteLine(result.ToString());
+                            /*string siteUrl = ApiCaller.GetDriveBySite(site.siteId);
                             JObject driveResult = ApiManager.RunAsync(siteUrl).GetAwaiter().GetResult();
                             //Console.WriteLine(site.id);
-                            if (driveResult != null)
+                            if (driveResult != null )
                             {
                                 Drive driveObject = (Drive)ApiManager.ConvertToDriveObject(driveResult);
 
-                                string fileUrl = ApiCaller.GetFilesByDrive(driveObject.Id);
-                                if (fileUrl != null)
+                                string dirUrl = ApiCaller.GetFilesByDrive(driveObject.Id);
+                                if (dirUrl != null)
                                 {
-                                    JObject files = ApiManager.RunAsync(fileUrl).GetAwaiter().GetResult();
-                                    if (files != null)
-                                    {
-                                        FileRoot fileObject = (FileRoot)ApiManager.ConvertToFile(files);
-                                        Console.WriteLine(fileObject.Files.Count());
-                                    }
+                                    GetInsidesDir(dirUrl, driveObject);
                                 }
                                 
-                            }
+                            }*/
                         }
-                        
-                        //Console.WriteLine($"Site name: {site.name} \t\t Site ID: {site.siteId}");
                     }
                 }
             }
@@ -60,14 +56,38 @@ namespace daemon_console
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine(ex.Message);
                 Console.ResetColor();
-            }
-
-
-
-            
+            }   
   
             Console.WriteLine("Press any key to exit");
             Console.ReadKey();
+        }
+        private static void GetInsidesDir(string url, Drive driveObject = null)
+        {
+            JObject apiResult = ApiManager.RunAsync(url).GetAwaiter().GetResult();
+            DirRoot dirObject = (DirRoot)ApiManager.ConvertToFile(apiResult);
+            foreach(var dirContent in dirObject.Files)
+            {
+                if (dirContent.size > 0)
+                {
+                   /* Console.WriteLine(dirContent.name);
+                    Console.WriteLine(dirContent.eTag);*/
+                    if (dirContent.name.Contains("Hello_world"))
+                    {
+                        string fileUrl = $"/drives/{driveObject.Id}/items/{dirContent.id}";
+                        GetFile(fileUrl);
+                    }
+                }
+                else if(dirContent.folder.ChildCount > 0)
+                {
+                    Console.WriteLine(dirContent.folder.ChildCount);
+                    GetInsidesDir(dirContent.webUrl);
+                }
+            }
+        }
+        private static void GetFile(string url)
+        {
+            JObject apiResult = ApiManager.RunAsync(url).GetAwaiter().GetResult();
+            Console.WriteLine(apiResult.ToString());
         }
     }
 }
