@@ -69,23 +69,34 @@ namespace daemon_console
             DirRoot dirObject = (DirRoot)ApiManager.ConvertToFile(apiResult);
             foreach(var dirContent in dirObject.Files)
             {
-                if (dirContent.size > 0)
+                if (dirContent.Size > 0 )
                 {
                    /* Console.WriteLine(dirContent.name);
                     Console.WriteLine(dirContent.eTag);*/
-                    string fileUrl = $"/drives/{driveObject.Id}/items/{dirContent.id}?expand=fields"; //
-                    GetFile(fileUrl);
-                                   }
-                else if(dirContent.folder.ChildCount > 0)
+                    
+                    GetFile(driveObject, dirContent);
+                                   }    
+                else if(dirContent.Folder.ChildCount > 0)
                 {
-                    Console.WriteLine(dirContent.folder.ChildCount);
-                    GetInsidesDir(dirContent.webUrl);
+                    Console.WriteLine(dirContent.Folder.ChildCount);
+                    GetInsidesDir(dirContent.WebUrl);
                 }
             }
         }
-        private static void GetFile(string url)
+        private static void GetFile(Drive driveObject, FileSP fileObject)
         {
-            JObject apiResult = ApiManager.RunAsync(url).GetAwaiter().GetResult();
+            string fileUrl = $"/drives/{driveObject.Id}/items/{fileObject.Id}?expand=fields"; //
+            if (fileObject.Name.Contains("Open"))
+            {
+                GetPDF(driveObject, fileObject);
+            }
+            
+        }
+        private static void GetPDF(Drive driveObject, FileSP fileObject)
+        {
+            string pdfUrl = $"/drives/{driveObject.Id}/root:/{fileObject.Name.Replace(" ", "%")}:/content";
+            JObject apiResult = ApiManager.RunAsync(pdfUrl, true, true).GetAwaiter().GetResult();
+            
             Console.WriteLine(apiResult.ToString());
         }
     }

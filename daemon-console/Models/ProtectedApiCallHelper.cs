@@ -35,7 +35,7 @@ namespace daemon_console
         /// <param name="webApiUrl">URL of the web API to call (supposed to return Json)</param>
         /// <param name="accessToken">Access token used as a bearer security token to call the web API</param>
         /// <param name="processResult">Callback used to process the result of the call to the web API</param>
-        public async Task<JObject> CallWebApiAndProcessResultASync(string webApiUrl, string accessToken)
+        public async Task<(JObject, HttpHeaders)> CallWebApiAndProcessResultASync(string webApiUrl, string accessToken)
         {
             if (!string.IsNullOrEmpty(accessToken))
             {
@@ -47,14 +47,42 @@ namespace daemon_console
                 defaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
                 HttpResponseMessage response = await HttpClient.GetAsync(webApiUrl);
+
+                HttpHeaders headers  = response.Headers;
+                Console.WriteLine(headers.ToString());
+
                 if (response.IsSuccessStatusCode)
                 {
-                    string json = await response.Content.ReadAsStringAsync();
-                    /// Console.WriteLine(child);
-                    JObject result = JsonConvert.DeserializeObject(json) as JObject;
-                    Console.ForegroundColor = ConsoleColor.Gray;
-                    Console.ResetColor();
-                    return result;
+                    try
+                    {
+                        string json = await response.Content.ReadAsStringAsync();
+                        /// Console.WriteLine(child);
+                        JObject result = JsonConvert.DeserializeObject(json) as JObject;
+                        Console.ForegroundColor = ConsoleColor.Gray;
+                        Console.ResetColor();
+                        return (result, headers);
+                    }
+                    catch
+                    {
+                        RootError error = new RootError
+                        {
+                            Error = new Error
+                            {
+                                Code = "Problem occured: empty string",
+                                Message = "Not good",
+                                InnerError = new InnerError
+                                {
+                                    RequestId = Guid.NewGuid(),
+                                    Date = DateTime.Now,
+                                    ClientRequestId = Guid.NewGuid(),
+                                    Code = "Problem occured: empty string"
+                                }
+                            }
+                        };
+                        JObject errorJson = (JObject)JsonConvert.SerializeObject(error.ToString());
+                        return (errorJson, headers);
+                    }
+                    
                 }
                 else
                 {
@@ -69,13 +97,13 @@ namespace daemon_console
                     // this is because the tenant admin as not granted consent for the application to call the Web API
                     Console.WriteLine($"Content: {error.Error.Message}");
                     Console.ResetColor();
-                    return null;
+                    return (null, null);
                 }
                
             }
             else
             {
-                return null;
+                return (null, null);
             }
         }
     }

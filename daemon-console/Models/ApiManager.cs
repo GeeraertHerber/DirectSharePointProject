@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Text;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Security.Cryptography.X509Certificates; //Only import this if you are using certificate
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using Microsoft.Identity.Client;
 using Microsoft.Identity.Web;
+
 
 namespace daemon_console.Models
 {
@@ -96,18 +98,37 @@ namespace daemon_console.Models
             }
         }
 
-        public static async Task<JObject> RunAsync(string webUrl = null, bool callGraph = true)
+        public static async Task<JObject> RunAsync(string webUrl = null, bool callGraph = true, bool beta = false)
         {
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
 
+            string url = config.ApiUrl;
+            Console.WriteLine(url);
+
+            if (beta == false) 
+            {
+                url += "v1.0";
+                Console.WriteLine(url);
+            }
+            else
+            {
+                url += "beta";
+                Console.WriteLine(url);
+            }
+
+
             if (webUrl == null)
             {
-                webUrl = $"{config.ApiUrl}v1.0/sites";
+                url += $"/sites";
+                Console.WriteLine(url);
             }
             else if (callGraph == true)
             {
-                webUrl = $"{config.ApiUrl}v1.0/{webUrl}";
+                url += webUrl;
+                Console.WriteLine(url);
             }
+
+
 
             // You can run this sample using ClientSecret or Certificate. The code will differ only when instantiating the IConfidentialClientApplication
             bool isUsingClientSecret = AppUsesClientSecret(config);
@@ -164,36 +185,19 @@ namespace daemon_console.Models
                     var apiCaller = new ProtectedApiCallHelper(httpClient);
                     Console.WriteLine(webUrl);
                     //await apiCaller.CallWebApiAndProcessResultASync($"{config.ApiUrl}v1.0/drives/b!m35i7pw9xk63vzHyWjqDzk_Pb0yQdL9KojjHhNPF3LPszlgMqS9gTLhxAfLg6bTB/root/children", result.AccessToken, Display);
-                    JObject ApiResult = await apiCaller.CallWebApiAndProcessResultASync(webUrl, result.AccessToken);
+                    Console.WriteLine(url);
+                    (JObject ApiResult, HttpHeaders headers) = await apiCaller.CallWebApiAndProcessResultASync(url, result.AccessToken);
                     //Display(ApiResult);
-                    if (ApiResult == null)
-                    {
-                        RootError error = new RootError
-                        {
-                            Error = new Error
-                            {
-                                Code = "Problem occured: empty string",
-                                Message = "Not good",
-                                InnerError = new InnerError
-                                {
-                                    RequestId = Guid.NewGuid(),
-                                    Date = DateTime.Now,
-                                    ClientRequestId = Guid.NewGuid(),
-                                    Code = "Problem occured: empty string"
-                                }
-                            }
-                        };
-                        
-                        return null;
-                        
-                    }
-                    else if (ApiResult.ContainsKey("error") && ApiResult != null)
+                    Console.WriteLine("Hello");
+                    Console.WriteLine(headers.ToString());
+                    
+                    
+                    if (ApiResult.ContainsKey("error") && ApiResult != null)
                     {
                         RootError error = JsonConvert.DeserializeObject<RootError>(ApiResult.ToString());
 
                         Console.ForegroundColor = ConsoleColor.Red;
                         Console.WriteLine($"Failed to call the web API: {error.Error.Message}");
-
 
                         // Note that if you got reponse.Code == 403 and reponse.content.code == "Authorization_RequestDenied"
                         // this is because the tenant admin as not granted consent for the application to call the Web API
@@ -220,8 +224,8 @@ namespace daemon_console.Models
                             }
                         }
                     };
-                   
-                    return null;
+                    JObject errorJson = (JObject)JsonConvert.SerializeObject(error.ToString());
+                    return errorJson;
                 }
             }
             throw new Exception("No apiresult came back");

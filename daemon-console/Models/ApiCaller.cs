@@ -9,18 +9,18 @@ namespace daemon_console.Models
        
         public static string GetSite(string SiteId = "")
         {
-            return $"sites/{SiteId}";
+            return $"/sites/{SiteId}";
         }
 
         public static string GetDriveBySite(string SiteId)
         {
-            return $"sites/{SiteId}/drive";
+            return $"/sites/{SiteId}/drive";
         }
 
         public static string GetFilesByDrive(string DriveId, bool RootOnly = false)
         {
             if (!RootOnly)
-                return $"drives/{DriveId}/root/children";
+                return $"/drives/{DriveId}/root/children";
             else
             {
                 return $"";
