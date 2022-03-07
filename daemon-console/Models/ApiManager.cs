@@ -186,10 +186,21 @@ namespace daemon_console.Models
                     Console.WriteLine(webUrl);
                     //await apiCaller.CallWebApiAndProcessResultASync($"{config.ApiUrl}v1.0/drives/b!m35i7pw9xk63vzHyWjqDzk_Pb0yQdL9KojjHhNPF3LPszlgMqS9gTLhxAfLg6bTB/root/children", result.AccessToken, Display);
                     Console.WriteLine(url);
-                    (JObject ApiResult, HttpHeaders headers) = await apiCaller.CallWebApiAndProcessResultASync(url, result.AccessToken);
+                    object ApiResult = await apiCaller.CallWebApiAndProcessResultASync(url, result.AccessToken);
                     //Display(ApiResult);
                     Console.WriteLine("Hello");
-                    Console.WriteLine(headers.ToString());
+                    try
+                    {
+                        if (ApiResult.GetType().Equals(string))
+                        {
+                            Console.WriteLine(ApiResult.ToString());
+                        }
+                        
+                    }
+                    catch
+                    {
+                        Console.WriteLine()
+                    }
                     
                     
                     if (ApiResult.ContainsKey("error") && ApiResult != null)

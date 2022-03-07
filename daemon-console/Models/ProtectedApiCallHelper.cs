@@ -35,7 +35,7 @@ namespace daemon_console
         /// <param name="webApiUrl">URL of the web API to call (supposed to return Json)</param>
         /// <param name="accessToken">Access token used as a bearer security token to call the web API</param>
         /// <param name="processResult">Callback used to process the result of the call to the web API</param>
-        public async Task<(JObject, HttpHeaders)> CallWebApiAndProcessResultASync(string webApiUrl, string accessToken)
+        public async Task<object> CallWebApiAndProcessResultASync(string webApiUrl, string accessToken)
         {
             if (!string.IsNullOrEmpty(accessToken))
             {
@@ -48,19 +48,34 @@ namespace daemon_console
 
                 HttpResponseMessage response = await HttpClient.GetAsync(webApiUrl);
 
-                HttpHeaders headers  = response.Headers;
+                HttpHeaders headers  = response.Content.Headers;
                 Console.WriteLine(headers.ToString());
 
                 if (response.IsSuccessStatusCode)
                 {
                     try
                     {
-                        string json = await response.Content.ReadAsStringAsync();
-                        /// Console.WriteLine(child);
-                        JObject result = JsonConvert.DeserializeObject(json) as JObject;
-                        Console.ForegroundColor = ConsoleColor.Gray;
-                        Console.ResetColor();
-                        return (result, headers);
+                        if (!headers.ToString().Contains("application/pdf"))
+                        {
+                            string json = await response.Content.ReadAsStringAsync();
+                            Console.WriteLine(headers.ToString().Contains("application/pdf"));
+
+                            JObject result = JsonConvert.DeserializeObject(json) as JObject;
+                            Console.ForegroundColor = ConsoleColor.Gray;
+                            Console.ResetColor();
+
+                            return result;
+                        }
+                        else
+                        {
+                            
+                            /// Console.WriteLine(child);
+                            byte[] byteArray = await response.Content.ReadAsByteArrayAsync();
+                            Console.WriteLine(byteArray);
+                            Console.ForegroundColor = ConsoleColor.Gray;
+                            Console.ResetColor();
+                            return byteArray;
+                        }
                     }
                     catch
                     {
@@ -80,7 +95,7 @@ namespace daemon_console
                             }
                         };
                         JObject errorJson = (JObject)JsonConvert.SerializeObject(error.ToString());
-                        return (errorJson, headers);
+                        return errorJson;
                     }
                     
                 }
@@ -97,13 +112,13 @@ namespace daemon_console
                     // this is because the tenant admin as not granted consent for the application to call the Web API
                     Console.WriteLine($"Content: {error.Error.Message}");
                     Console.ResetColor();
-                    return (null, null);
+                    return error;
                 }
                
             }
             else
             {
-                return (null, null);
+                return null;
             }
         }
     }

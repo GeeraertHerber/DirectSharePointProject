@@ -94,7 +94,7 @@ namespace daemon_console
         }
         private static void GetPDF(Drive driveObject, FileSP fileObject)
         {
-            string pdfUrl = $"/drives/{driveObject.Id}/root:/{fileObject.Name.Replace(" ", "%")}:/content";
+            string pdfUrl = $"/drives/{driveObject.Id}/root:/{fileObject.Name.Replace(" ", "%")}:/content?format=pdf";
             JObject apiResult = ApiManager.RunAsync(pdfUrl, true, true).GetAwaiter().GetResult();
             
             Console.WriteLine(apiResult.ToString());
