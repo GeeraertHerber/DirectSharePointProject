@@ -9,6 +9,6 @@ namespace daemon_console.Models
     {
         [JsonProperty("@odata.context")]
         public string OdataContext { get; set; }
-        public List<Site> value { get; set; }
+        public List<Site> Value { get; set; }
     }
 }

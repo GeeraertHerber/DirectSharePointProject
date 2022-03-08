@@ -8,95 +8,15 @@ using System.Security.Cryptography.X509Certificates; //Only import this if you a
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
+using daemon_console.Models.OCR;
 using Microsoft.Identity.Client;
 using Microsoft.Identity.Web;
-
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace daemon_console.Models
 {
     public class ApiManager
     {
-
-        
-        public static object ConvertToSiteObjects(JObject jsonObject)
-        {
-            if (jsonObject != null)
-            {
-                try
-                {
-                    if (jsonObject["value"].Count() > 1)
-                    {
-                        string stringedObject = jsonObject.ToString();
-                        SiteCall SiteObject = JsonConvert.DeserializeObject<SiteCall>(stringedObject);
-                        return SiteObject;
-                    }
-                    else if (jsonObject["value"].Count() == 1)
-                    {
-                        string stringedObject = jsonObject.ToString();
-                        Site SiteObject = JsonConvert.DeserializeObject<Site>(stringedObject);
-                        return SiteObject;
-                    }
-                }
-                catch
-                {
-                    string stringedObject = jsonObject.ToString();
-                    Error errorObject = JsonConvert.DeserializeObject<Error>(stringedObject);
-                    return errorObject;
-                }
-                return null; 
-            }
-            else
-            {
-                return null;
-            }
-           
-        }
-
-        public static object ConvertToDriveObject(JObject jsonObject)
-        {
-            try
-            {
-                if (jsonObject != null)
-                {
-                    string stringedObject = jsonObject.ToString();
-                    Drive driveObject = JsonConvert.DeserializeObject<Drive>(stringedObject);
-                    return driveObject;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-            catch
-            {
-                string stringObject = jsonObject.ToString();
-                Error error = JsonConvert.DeserializeObject<Error>(stringObject);
-                return error;
-            }
-        }
-
-        public static object ConvertToFile(JObject jsonObject)
-        {
-            try
-            {
-                if (jsonObject != null)
-                {
-                    string stringedObject = jsonObject.ToString();
-                    DirRoot driveObject = JsonConvert.DeserializeObject<DirRoot>(stringedObject);
-                    return driveObject;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-            catch
-            {
-                string stringObject = jsonObject.ToString();
-                Error error = JsonConvert.DeserializeObject<Error>(stringObject);
-                return error;
-            }
-        }
 
         public static async Task<JObject> RunAsync(string webUrl = null, bool callGraph = true, bool beta = false)
         {
@@ -184,42 +104,43 @@ namespace daemon_console.Models
                     var httpClient = new HttpClient();
                     var apiCaller = new ProtectedApiCallHelper(httpClient);
                     Console.WriteLine(webUrl);
-                    //await apiCaller.CallWebApiAndProcessResultASync($"{config.ApiUrl}v1.0/drives/b!m35i7pw9xk63vzHyWjqDzk_Pb0yQdL9KojjHhNPF3LPszlgMqS9gTLhxAfLg6bTB/root/children", result.AccessToken, Display);
                     Console.WriteLine(url);
                     object ApiResult = await apiCaller.CallWebApiAndProcessResultASync(url, result.AccessToken);
-                    //Display(ApiResult);
-                    Console.WriteLine("Hello");
-                    try
+                    Console.WriteLine(ApiResult.GetType());
+                    if (ApiResult.GetType() == typeof(byte[]))
                     {
-                        if (ApiResult.GetType().Equals(string))
-                        {
-                            Console.WriteLine(ApiResult.ToString());
-                        }
+                        //await System.IO.File.WriteAllBytesAsync("hello_world.pdf", (byte[])ApiResult);
+                        Console.WriteLine("Converting doc to PDF");
+                        JObject ocrRespons = await apiCaller.CallOCRApiASync("https://westeurope.api.cognitive.microsoft.com/vision/v3.2/read/analyze?language=en", (byte[])ApiResult);
+                        Console.WriteLine("Done");
                         
+                        return ocrRespons;
                     }
-                    catch
+                    else if (ApiResult.GetType() == typeof(JObject))
                     {
-                        Console.WriteLine()
-                    }
-                    
-                    
-                    if (ApiResult.ContainsKey("error") && ApiResult != null)
-                    {
-                        RootError error = JsonConvert.DeserializeObject<RootError>(ApiResult.ToString());
+                        JObject JsonObject = JObject.Parse(ApiResult.ToString());
 
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine($"Failed to call the web API: {error.Error.Message}");
+                        if (JsonObject.ContainsKey("error") && JsonObject != null)
+                        {
+                            RootError error = JsonConvert.DeserializeObject<RootError>(JsonObject.ToString());
 
-                        // Note that if you got reponse.Code == 403 and reponse.content.code == "Authorization_RequestDenied"
-                        // this is because the tenant admin as not granted consent for the application to call the Web API
-                        Console.WriteLine($"Content: {error.Error.Message}");
-                        Console.ResetColor();
-                        return null;
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine($"Failed to call the web API: {error.Error.Message}");
+
+                            // Note that if you got reponse.Code == 403 and reponse.content.code == "Authorization_RequestDenied"
+                            // this is because the tenant admin as not granted consent for the application to call the Web API
+                            Console.WriteLine($"Content: {error.Error.Message}");
+                            Console.ResetColor();
+                            return null;
+                        }
+                        return JsonObject;
                     }
-                    return ApiResult;
+                    //Display(ApiResult);
+                    
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Console.WriteLine(ex);
                     RootError error = new RootError
                     {
                         Error = new Error

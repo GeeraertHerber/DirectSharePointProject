@@ -32,11 +32,11 @@ namespace daemon_console
                     //string url = ApiCaller.GetSite();
                     string url = ApiCaller.GetSite("b!8gBvwHeRuECjw4izLaZWvHdN3S3rz75Kvhyrf0kHHx9SiVwv01P_Solc6sU6SAea");
                     JObject apiResult = ApiManager.RunAsync(url).GetAwaiter().GetResult();
-                    SiteCall siteObject = (SiteCall)ApiManager.ConvertToSiteObjects(apiResult);
+                    SiteCall siteObject = JsonConvert.DeserializeObject<SiteCall>(apiResult.ToString());
                     //Console.WriteLine(siteObject.value.First().siteId);
                     if (siteObject != null)
                     {
-                        foreach (var site in siteObject.value)
+                        foreach (var site in siteObject.Value)
                         {
                             string siteUrl = ApiCaller.GetDriveBySite(site.siteId);
                             JObject driveResult = ApiManager.RunAsync(siteUrl).GetAwaiter().GetResult();

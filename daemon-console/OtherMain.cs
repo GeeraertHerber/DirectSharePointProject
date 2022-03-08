@@ -22,11 +22,11 @@ namespace daemon_console
                 //string url = ApiCaller.GetSite();
                 string url = ApiCaller.GetSite();
                 JObject apiResult = ApiManager.RunAsync(url).GetAwaiter().GetResult();
-                SiteCall siteObject = (SiteCall)ApiManager.ConvertToSiteObjects(apiResult);
+                SiteCall siteObject = JsonConvert.DeserializeObject<SiteCall>(apiResult.ToString());
                 //Console.WriteLine(siteObject.value.First().siteId);
                 if (siteObject != null)
                 {
-                    foreach (var site in siteObject.value)
+                    foreach (var site in siteObject.Value)
                     {
                         if (!site.webUrl.Contains("/personal") && site.name != null && site.webUrl.Contains("Retail"))
                         {
@@ -40,7 +40,7 @@ namespace daemon_console
                             //Console.WriteLine(site.id);
                             if (driveResult != null)
                             {
-                                Drive driveObject = (Drive)ApiManager.ConvertToDriveObject(driveResult);
+                                Drive driveObject = JsonConvert.DeserializeObject<Drive>(driveResult.ToString());
 
                                 string dirUrl = ApiCaller.GetFilesByDrive(driveObject.Id);
                                 if (dirUrl != null)
@@ -66,7 +66,7 @@ namespace daemon_console
         private static void GetInsidesDir(string url, Drive driveObject = null)
         {
             JObject apiResult = ApiManager.RunAsync(url).GetAwaiter().GetResult();
-            DirRoot dirObject = (DirRoot)ApiManager.ConvertToFile(apiResult);
+            DirRoot dirObject = JsonConvert.DeserializeObject<DirRoot>(apiResult.ToString());
             foreach(var dirContent in dirObject.Files)
             {
                 if (dirContent.Size > 0 )
@@ -83,6 +83,7 @@ namespace daemon_console
                 }
             }
         }
+
         private static void GetFile(Drive driveObject, FileSP fileObject)
         {
             string fileUrl = $"/drives/{driveObject.Id}/items/{fileObject.Id}?expand=fields"; //

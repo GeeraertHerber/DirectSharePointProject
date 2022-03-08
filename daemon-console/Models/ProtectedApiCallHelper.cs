@@ -9,6 +9,9 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using daemon_console.Models;
+using daemon_console.Models.OCR;
+using System.Text;
+using System.Collections.Generic;
 
 namespace daemon_console
 {
@@ -35,6 +38,54 @@ namespace daemon_console
         /// <param name="webApiUrl">URL of the web API to call (supposed to return Json)</param>
         /// <param name="accessToken">Access token used as a bearer security token to call the web API</param>
         /// <param name="processResult">Callback used to process the result of the call to the web API</param>
+        /// 
+        public async Task<JObject> CallOCRApiASync(string url, byte[] byteArray)
+        {
+            AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
+
+            HttpClient httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.SPTextKey1}");
+            var content = new ByteArrayContent(byteArray);
+            
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+            HttpResponseMessage response = await httpClient.PostAsync(url, content);
+            List<JObject> ocrResponse = new List<JObject>();
+            JObject ocrObject = new JObject();
+
+            if ( response.Headers.TryGetValues("Operation-Location", out IEnumerable<string> responseUrl))
+            {
+                //Console.WriteLine(responseUrl.First());
+                bool running = true;
+                while (running)
+
+                {
+                    ocrResponse.Add(await CallCompletedOCRASync(responseUrl.First(), config));
+                    if (!(ocrResponse[^1].GetValue("status").ToString() == "running"))
+                    {
+                        running = false;
+                        break;
+                    }
+                    await Task.Delay(2000);
+                }
+                ocrObject = (JObject)JsonConvert.DeserializeObject(ocrResponse[^1].ToString());
+            }
+            
+            return ocrObject;
+                //httpClient..Add("Content-Type", "application/octet-stream");
+        }
+
+        public async Task<JObject> CallCompletedOCRASync(string responseurl, AuthenticationConfig config)
+        {
+            HttpClient httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.SPTextKey1}");
+            var respons = await httpClient.GetAsync(responseurl);
+            string json = await respons.Content.ReadAsStringAsync();
+            
+            JObject ocrRespons = JsonConvert.DeserializeObject(json) as JObject;
+            //Console.WriteLine(ocrRespons.ToString());
+            return ocrRespons;
+        }
+
         public async Task<object> CallWebApiAndProcessResultASync(string webApiUrl, string accessToken)
         {
             if (!string.IsNullOrEmpty(accessToken))
@@ -49,7 +100,7 @@ namespace daemon_console
                 HttpResponseMessage response = await HttpClient.GetAsync(webApiUrl);
 
                 HttpHeaders headers  = response.Content.Headers;
-                Console.WriteLine(headers.ToString());
+                //Console.WriteLine(headers.ToString());
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -58,7 +109,7 @@ namespace daemon_console
                         if (!headers.ToString().Contains("application/pdf"))
                         {
                             string json = await response.Content.ReadAsStringAsync();
-                            Console.WriteLine(headers.ToString().Contains("application/pdf"));
+                            //Console.WriteLine(headers.ToString().Contains("application/pdf"));
 
                             JObject result = JsonConvert.DeserializeObject(json) as JObject;
                             Console.ForegroundColor = ConsoleColor.Gray;

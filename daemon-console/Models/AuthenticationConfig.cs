@@ -67,6 +67,7 @@ namespace daemon_console
         /// (and identified by this CertificateName property)
         /// <remarks> 
         public string CertificateName { get; set; }
+        public string SPTextKey1 { get; set; }
 
         /// <summary>
         /// Reads the configuration from a json file
