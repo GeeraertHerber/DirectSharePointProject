@@ -14,7 +14,7 @@ namespace daemon_console.Models.OCR
         public double Angle { get; set; }
 
         [JsonPropertyName("width")]
-        public int Width { get; set; }
+        public float Width { get; set; }
 
         [JsonPropertyName("height")]
         public int Height { get; set; }

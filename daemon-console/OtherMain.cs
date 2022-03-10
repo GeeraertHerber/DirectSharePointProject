@@ -9,6 +9,8 @@ using System.Security.Cryptography.X509Certificates; //Only import this if you a
 using System.Threading.Tasks;
 using System.IO;
 using daemon_console.Models;
+using daemon_console.Models.OCR;
+using System.Collections.Generic;
 
 namespace daemon_console
 {
@@ -97,8 +99,40 @@ namespace daemon_console
         {
             string pdfUrl = $"/drives/{driveObject.Id}/root:/{fileObject.Name.Replace(" ", "%")}:/content?format=pdf";
             JObject apiResult = ApiManager.RunAsync(pdfUrl, true, true).GetAwaiter().GetResult();
+            OCRResponse ocrObject = JsonConvert.DeserializeObject<OCRResponse>(apiResult.ToString());
+            GetWords(ocrObject);
             
-            Console.WriteLine(apiResult.ToString());
+        }
+
+        private static void GetWords(OCRResponse ocrObject)
+        {
+            List<string> wordList = new List<string>();
+            //Console.WriteLine(wordList);
+            foreach (ReadResult result in ocrObject.AnalyzeResult.ReadResults)
+            {
+                foreach (Line line in result.Lines)
+                {
+                    Console.WriteLine(line.Text);
+                    foreach (var word in line.Text.Split(" "))
+                    {
+                        wordList.Add(word);
+                    }
+                    
+                    /*foreach (string word in line.Text)
+                    {
+                        Console.WriteLine(word.Text);
+                    }*/
+                }
+            }
+            string[] words = wordList.ToArray();
+            GetAnalytics(words);
+
+
+        }
+        private static void GetAnalytics(string[] wordArray)
+        {
+            Console.WriteLine(wordArray.Length);
+            JObject apiResult = ApiManager.
         }
     }
 }

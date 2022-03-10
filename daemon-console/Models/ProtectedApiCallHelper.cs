@@ -12,6 +12,7 @@ using daemon_console.Models;
 using daemon_console.Models.OCR;
 using System.Text;
 using System.Collections.Generic;
+using daemon_console.Models.Analytics;
 
 namespace daemon_console
 {
@@ -39,16 +40,62 @@ namespace daemon_console
         /// <param name="accessToken">Access token used as a bearer security token to call the web API</param>
         /// <param name="processResult">Callback used to process the result of the call to the web API</param>
         /// 
+
+        public async Task<JObject> PostAnalyticsText(string[] content)
+        {
+            AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
+
+            string endpoint = config.TextAn1;
+            string url = $"https://{endpoint}/text/analytics/v3.2-preview.2/analyze";
+
+            HttpClient httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.OCRKey1}");
+            string stringedContent = string.Join("", content);
+            var analyticsObject = new AnalyticsRoot
+            {
+                DisplayName = "Extracting sentiment",
+                AnalysisInput = {
+                    Documents =
+                    {
+                        new Document
+                        {
+                            Id = "1",
+                            Language = "en",
+                            Text = stringedContent
+                        }
+                    }
+                },
+                Tasks = {
+                    ExtractiveSummarizationTasks =
+                    {
+                        new ExtractiveSummarizationTask
+                        {
+                            Parameters = {
+                                ModelVersion = "latest"
+                            }
+                        }
+                    }
+                }
+
+            };
+            Console.WriteLine(stringedContent);
+            string jsonString = JsonSerializer.Serialize(analyticsObject);
+            //body.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            HttpContent httpContent = new HttpContent(jsonString);
+            HttpResponseMessage response = await httpClient.PostAsync(url, httpContent);
+            Console.WriteLine(response.ToString());
+            return ;
+        }
         public async Task<JObject> CallOCRApiASync(string url, byte[] byteArray)
         {
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
 
             HttpClient httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.SPTextKey1}");
-            var content = new ByteArrayContent(byteArray);
-            
-            content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-            HttpResponseMessage response = await httpClient.PostAsync(url, content);
+            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.OCRKey1}");
+            var body = new ByteArrayContent(byteArray);
+
+            body.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+            HttpResponseMessage response = await httpClient.PostAsync(url, body);
             List<JObject> ocrResponse = new List<JObject>();
             JObject ocrObject = new JObject();
 
@@ -77,7 +124,7 @@ namespace daemon_console
         public async Task<JObject> CallCompletedOCRASync(string responseurl, AuthenticationConfig config)
         {
             HttpClient httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.SPTextKey1}");
+            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.OCRKey1}");
             var respons = await httpClient.GetAsync(responseurl);
             string json = await respons.Content.ReadAsStringAsync();
             
