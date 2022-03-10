@@ -79,14 +79,15 @@ namespace daemon_console
 
             };
             Console.WriteLine(stringedContent);
-            string jsonString = JsonSerializer.Serialize(analyticsObject);
+            string jsonString = JsonConvert.SerializeObject(analyticsObject);
             //body.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-            HttpContent httpContent = new HttpContent(jsonString);
+            HttpContent httpContent = new StringContent(jsonString);
             HttpResponseMessage response = await httpClient.PostAsync(url, httpContent);
             Console.WriteLine(response.ToString());
-            return ;
+            JObject json = JObject.Parse(jsonString);
+            return json;
         }
-        public async Task<JObject> CallOCRApiASync(string url, byte[] byteArray)
+        public async Task<JObject> PostOCRAsync(string url, byte[] byteArray)
         {
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
 

@@ -132,7 +132,7 @@ namespace daemon_console
         private static void GetAnalytics(string[] wordArray)
         {
             Console.WriteLine(wordArray.Length);
-            JObject apiResult = ApiManager.
+            JObject apiResult = ApiManager.PostAnalyticsText(wordArray);
         }
     }
 }
