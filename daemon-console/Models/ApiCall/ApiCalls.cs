@@ -18,14 +18,7 @@ namespace daemon_console.Models.ApiCalls
 {
     public class ApiCalls
     {
-        /// <param name="httpClient">HttpClient used to call the protected API</param>
-        public ApiCalls(HttpClient httpClient)
-        {
-            httpClient = HttpClient;
-        }
-
         protected HttpClient HttpClient { get; private set; }
-
         public static bool AppUsesClientSecret(AuthenticationConfig config)
         {
             string clientSecretPlaceholderValue = "[Enter here a client secret for your application]";
@@ -55,8 +48,9 @@ namespace daemon_console.Models.ApiCalls
             defaultCertificateLoader.LoadIfNeeded(certificateDescription);
             return certificateDescription.Certificate;
         }
-        public static async Task<JObject> CallCompletedOCRASync(string responseurl, AuthenticationConfig config)
+        public static async Task<JObject> CallCompletedOCRASync(string responseurl)
         {
+            AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
             HttpClient httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.OCRKey1}");
             var respons = await httpClient.GetAsync(responseurl);
@@ -86,7 +80,7 @@ namespace daemon_console.Models.ApiCalls
                 while (running)
 
                 {
-                    ocrResponse.Add(await CallCompletedOCRASync(responseUrl.First(), config));
+                    ocrResponse.Add(await CallCompletedOCRASync(responseUrl.First()));
                     if (!(ocrResponse[^1].GetValue("status").ToString() == "running"))
                     {
                        
@@ -100,7 +94,7 @@ namespace daemon_console.Models.ApiCalls
             return ocrObject;
             //httpClient..Add("Content-Type", "application/octet-stream");
         }
-        public static async Task<JObject> GetGraphData(string webUrl = null, bool callGraph = true, bool beta = false)
+        public static async Task<JObject> GetGraphData(string webUrl = null)
         {
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
 
@@ -312,11 +306,11 @@ namespace daemon_console.Models.ApiCalls
         private static async Task<JObject> GetPDF(Drive driveObject, FileSP fileObject)
         {
             string pdfUrl = $"/drives/{driveObject.Id}/root:/{fileObject.Name.Replace(" ", "%")}:/content?format=pdf";
-            JObject apiResult = await GetGraphData(pdfUrl, true, true);
+            JObject apiResult = await GetGraphData(pdfUrl);
             return apiResult;
 
         }
-        private static async Task<JObject> GetWords(OCRResponse ocrObject)
+        private static JObject ExtractWords(OCRResponse ocrObject)
         {
             List<string> wordList = new List<string>();
             //Console.WriteLine(wordList);

@@ -5,7 +5,7 @@ using System.Text;
 
 namespace daemon_console.Models
 {
-    public class wordObject
+    public class WordObject
     {
         [JsonProperty("words")]
         string[] Words { get; set; }
