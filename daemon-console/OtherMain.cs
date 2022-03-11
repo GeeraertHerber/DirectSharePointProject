@@ -6,12 +6,15 @@ using daemon_console.Models;
 using daemon_console.Models.OCR;
 using System.Collections.Generic;
 using daemon_console.Models.ApiCalls;
+using System.Linq;
+using daemon_console.Models.Errors;
+using System.Threading.Tasks;
 
 namespace daemon_console
 {
     class OtherMain
     {
-        public static void MainTester()
+        public static async void MainTester()
         {
             
             try
@@ -42,7 +45,7 @@ namespace daemon_console
                                 string dirUrl = ApiCaller.GetFilesByDrive(driveObject.Id);
                                 if (dirUrl != null)
                                 {
-                                    GetInsidesDir(dirUrl, driveObject);
+                                    JObject result = await ApiCalls.GetInsideDir(dirUrl, driveObject);
                                 }
 
                             }
@@ -60,75 +63,9 @@ namespace daemon_console
             Console.WriteLine("Press any key to exit");
             Console.ReadKey();
         }
-        private static void GetInsidesDir(string url, Drive driveObject = null)
-        {
-            JObject apiResult = ApiCalls.GetGraphData(url).GetAwaiter().GetResult();
-            DirRoot dirObject = JsonConvert.DeserializeObject<DirRoot>(apiResult.ToString());
-            foreach(var dirContent in dirObject.Files)
-            {
-                if (dirContent.Size > 0 )
-                {
-                   /* Console.WriteLine(dirContent.name);
-                    Console.WriteLine(dirContent.eTag);*/
-                    
-                    GetFile(driveObject, dirContent);
-                                   }    
-                else if(dirContent.Folder.ChildCount > 0)
-                {
-                    Console.WriteLine(dirContent.Folder.ChildCount);
-                    GetInsidesDir(dirContent.WebUrl);
-                }
-            }
-        }
+        
 
-        private static void GetFile(Drive driveObject, FileSP fileObject)
-        {
-            string fileUrl = $"/drives/{driveObject.Id}/items/{fileObject.Id}?expand=fields"; //
-            if (fileObject.Name.Contains("Open"))
-            {
-                GetPDF(driveObject, fileObject);
-            }
-            
-        }
-        private static void GetPDF(Drive driveObject, FileSP fileObject)
-        {
-            string pdfUrl = $"/drives/{driveObject.Id}/root:/{fileObject.Name.Replace(" ", "%")}:/content?format=pdf";
-            JObject apiResult = ApiCalls.GetGraphData(pdfUrl, true, true).GetAwaiter().GetResult();
-            OCRResponse ocrObject = JsonConvert.DeserializeObject<OCRResponse>(apiResult.ToString());
-            GetWords(ocrObject);
-            
-        }
-
-        private static void GetWords(OCRResponse ocrObject)
-        {
-            List<string> wordList = new List<string>();
-            //Console.WriteLine(wordList);
-            foreach (ReadResult result in ocrObject.AnalyzeResult.ReadResults)
-            {
-                foreach (Line line in result.Lines)
-                {
-                    Console.WriteLine(line.Text);
-                    foreach (var word in line.Text.Split(" "))
-                    {
-                        wordList.Add(word);
-                    }
-                    
-                    /*foreach (string word in line.Text)
-                    {
-                        Console.WriteLine(word.Text);
-                    }*/
-                }
-            }
-            string[] words = wordList.ToArray();
-            GetAnalytics(words);
-
-
-        }
-        private static async void GetAnalytics(string[] wordArray)
-        {
-            Console.WriteLine(wordArray.Length);
-            HttpResponseMessage httpResponse = await ApiCalls.PostAnalyticsText(wordArray);
-            Console.WriteLine(httpResponse.StatusCode);
-        }
+       
+        
     }
 }

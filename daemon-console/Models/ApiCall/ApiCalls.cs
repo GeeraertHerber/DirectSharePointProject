@@ -1,5 +1,6 @@
 ﻿using daemon_console.Models.Analytics;
 using daemon_console.Models.Errors;
+using daemon_console.Models.OCR;
 using Microsoft.Identity.Client;
 using Microsoft.Identity.Web;
 using Newtonsoft.Json;
@@ -17,13 +18,14 @@ namespace daemon_console.Models.ApiCalls
 {
     public class ApiCalls
     {
-        
+        /// <param name="httpClient">HttpClient used to call the protected API</param>
         public ApiCalls(HttpClient httpClient)
         {
-            HttpClient = httpClient;
+            httpClient = HttpClient;
         }
 
         protected HttpClient HttpClient { get; private set; }
+
         public static bool AppUsesClientSecret(AuthenticationConfig config)
         {
             string clientSecretPlaceholderValue = "[Enter here a client secret for your application]";
@@ -42,7 +44,6 @@ namespace daemon_console.Models.ApiCalls
             else
                 throw new Exception("You must choose between using client secret or certificate. Please update appsettings.json file.");
         }
-
         public static X509Certificate2 ReadCertificate(string certificateName)
         {
             if (string.IsNullOrWhiteSpace(certificateName))
@@ -54,7 +55,6 @@ namespace daemon_console.Models.ApiCalls
             defaultCertificateLoader.LoadIfNeeded(certificateDescription);
             return certificateDescription.Certificate;
         }
-
         public async Task<JObject> CallCompletedOCRASync(string responseurl, AuthenticationConfig config)
         {
             HttpClient httpClient = new HttpClient();
@@ -66,7 +66,6 @@ namespace daemon_console.Models.ApiCalls
             //Console.WriteLine(ocrRespons.ToString());
             return ocrRespons;
         }
-        
         public async Task<JObject> PostOCRAsync(string url, byte[] byteArray)
         {
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
@@ -182,23 +181,8 @@ namespace daemon_console.Models.ApiCalls
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex);
-                    RootError error = new RootError
-                    {
-                        Error = new Error
-                        {
-                            Code = "Problem occured: empty string",
-                            Message = "Not good",
-                            InnerError = new InnerError
-                            {
-                                RequestId = Guid.NewGuid(),
-                                Date = DateTime.Now,
-                                ClientRequestId = Guid.NewGuid(),
-                                Code = "Problem occured: empty string"
-                            }
-                        }
-                    };
-                    JObject errorJson = (JObject)JsonConvert.SerializeObject(error.ToString());
-                    return errorJson;
+                    JObject error = ErrorHandler.CreateNewError("Error occured while calling for the graph API");
+                    return error;
                 }
             }
             throw new Exception("No apiresult came back");
@@ -250,18 +234,20 @@ namespace daemon_console.Models.ApiCalls
             return response;
         }
 
-        public async Task<object> GetWebAsync(string webApiUrl, string accessToken)
+        
+
+        public static async Task<object> GetWebAsync(string webApiUrl, string accessToken, HttpClient httpClient)
         {
             if (!string.IsNullOrEmpty(accessToken))
             {
-                var defaultRequestHeaders = HttpClient.DefaultRequestHeaders;
+                var defaultRequestHeaders = httpClient.DefaultRequestHeaders;
                 if (defaultRequestHeaders.Accept == null || !defaultRequestHeaders.Accept.Any(m => m.MediaType == "application/json"))
                 {
-                    HttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 }
                 defaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-                HttpResponseMessage response = await HttpClient.GetAsync(webApiUrl);
+                HttpResponseMessage response = await httpClient.GetAsync(webApiUrl);
 
                 HttpHeaders headers = response.Content.Headers;
                 //Console.WriteLine(headers.ToString());
@@ -284,6 +270,89 @@ namespace daemon_console.Models.ApiCalls
                 return standardError;
             }
         }
+        private static async Task<JObject> GetFile(Drive driveObject, FileSP fileObject)
+        {
+            JObject result = new JObject();
+            string[] files = new string[]
+            {
+                "csv", "doc", "docx", "odp", "ods", "odt", "pot", "potm", "potx", "pps", "ppsx", "ppsxm", "ppt", "pptm", "pptx", "rtf", "xls", "xlsx"
+            };
+            if (files.Any(fileObject.Name.Contains))
+            {
+                string fileUrl = $"/drives/{driveObject.Id}/items/{fileObject.Id}?expand=fields"; //
+                /*if (fileObject.Name.Contains(".pdf"))*/
+                result = await GetPDF(driveObject, fileObject);
+            }
+            else
+            {
+                result = ErrorHandler.CreateNewError("Not a supported documenttype");
+            }
+            return result;
+
+        }
+        public static async Task<JObject> GetInsideDir(string url, Drive driveObject)
+        {
+            JObject result = new JObject();
+            JObject apiResult = await GetGraphData(url);
+            DirRoot dirObject = JsonConvert.DeserializeObject<DirRoot>(apiResult.ToString());
+            foreach (var dirContent in dirObject.Files)
+            {
+                if (dirContent.Size > 0)
+                {
+                    /* Console.WriteLine(dirContent.name);
+                     Console.WriteLine(dirContent.eTag);*/
+                    result = await GetFile(driveObject, dirContent);
+                }
+                else if (dirContent.Folder.ChildCount > 0)
+                {
+                    Console.WriteLine(dirContent.Folder.ChildCount);
+                    result = await GetInsideDir(dirContent.WebUrl, driveObject);
+                }
+
+            }
+            return result;
+        }
+        private static async Task<JObject> GetPDF(Drive driveObject, FileSP fileObject)
+        {
+            string pdfUrl = $"/drives/{driveObject.Id}/root:/{fileObject.Name.Replace(" ", "%")}:/content?format=pdf";
+            JObject apiResult = await GetGraphData(pdfUrl, true, true);
+            return apiResult;
+
+        }
+        private static async Task<JObject> GetWords(OCRResponse ocrObject)
+        {
+            List<string> wordList = new List<string>();
+            //Console.WriteLine(wordList);
+            foreach (ReadResult result in ocrObject.AnalyzeResult.ReadResults)
+            {
+                foreach (Line line in result.Lines)
+                {
+                    Console.WriteLine(line.Text);
+                    foreach (var word in line.Text.Split(" "))
+                    {
+                        wordList.Add(word);
+                    }
+
+                    /*foreach (string word in line.Text)
+                    {
+                        Console.WriteLine(word.Text);
+                    }*/
+                }
+            }
+            string[] words = wordList.ToArray();
+            JObject analyticsResult = await GetAnalytics(words);
+            return analyticsResult;
+
+
+        }
+        private static async Task<JObject> GetAnalytics(string[] wordArray)
+        {
+            Console.WriteLine(wordArray.Length);
+            HttpResponseMessage httpResponse = await ApiCalls.PostAnalyticsText(wordArray);
+            Console.WriteLine(httpResponse.StatusCode);
+            return JObject.Parse(httpResponse.ToString());
+        }
+        
 
     }
 }

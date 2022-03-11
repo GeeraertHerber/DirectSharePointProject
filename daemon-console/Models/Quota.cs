@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace daemon_console.Models
 {
-    internal class Quota
+    public class Quota
     {
         [JsonProperty("deleted")]
         public int Deleted { get; set; }

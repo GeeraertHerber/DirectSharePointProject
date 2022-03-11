@@ -1,12 +1,15 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace daemon_console.Models
 {
-    internal class Group
+    public class Group
     {
-        public string id { get; set; }
-        public string displayName { get; set; }
+        [JsonProperty("id")]
+        public string Id { get; set; }
+        [JsonProperty("displayName")]
+        public string DisplayName { get; set; }
     }
 }

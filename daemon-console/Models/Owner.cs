@@ -1,11 +1,13 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace daemon_console.Models
 {
-    internal class Owner
+    public class Owner
     {
-        public Group group { get; set; }
+        [JsonProperty("group")]
+        public Group Group { get; set; }
     }
 }
