@@ -55,7 +55,7 @@ namespace daemon_console.Models.ApiCalls
             defaultCertificateLoader.LoadIfNeeded(certificateDescription);
             return certificateDescription.Certificate;
         }
-        public async Task<JObject> CallCompletedOCRASync(string responseurl, AuthenticationConfig config)
+        public static async Task<JObject> CallCompletedOCRASync(string responseurl, AuthenticationConfig config)
         {
             HttpClient httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.OCRKey1}");
@@ -66,7 +66,7 @@ namespace daemon_console.Models.ApiCalls
             //Console.WriteLine(ocrRespons.ToString());
             return ocrRespons;
         }
-        public async Task<JObject> PostOCRAsync(string url, byte[] byteArray)
+        public static async Task<JObject> PostOCRAsync(string url, byte[] byteArray)
         {
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
 
@@ -233,9 +233,6 @@ namespace daemon_console.Models.ApiCalls
             JObject json = JObject.Parse(jsonString);
             return response;
         }
-
-        
-
         public static async Task<object> GetWebAsync(string webApiUrl, string accessToken, HttpClient httpClient)
         {
             if (!string.IsNullOrEmpty(accessToken))
@@ -340,8 +337,9 @@ namespace daemon_console.Models.ApiCalls
                 }
             }
             string[] words = wordList.ToArray();
-            JObject analyticsResult = await GetAnalytics(words);
-            return analyticsResult;
+            string stringedWordList = String.Join("", words);
+            JObject wordResult = JObject.Parse(stringedWordList);
+            return wordResult;
 
 
         }
