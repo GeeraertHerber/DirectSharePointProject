@@ -18,32 +18,9 @@ namespace daemon_console.Models
     public class ApiManager
     {
 
-        public static async Task<JObject> RunAsync(string webUrl = null, bool callGraph = true, bool beta = false)
+        public static async Task<JObject> GetGraphData(string webUrl = null, bool callGraph = true, bool beta = false)
         {
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
-
-            string url = config.ApiUrl;
-
-            if (beta == false) 
-            {
-                url += "v1.0";
-            }
-            else
-            {
-                url += "beta";
-            }
-
-
-            if (webUrl == null)
-            {
-                url += $"/sites";
-            }
-            else if (callGraph == true)
-            {
-                url += webUrl;
-            }
-
-
 
             // You can run this sample using ClientSecret or Certificate. The code will differ only when instantiating the IConfidentialClientApplication
             bool isUsingClientSecret = AppUsesClientSecret(config);
@@ -98,37 +75,25 @@ namespace daemon_console.Models
                 {
                     var httpClient = new HttpClient();
                     var apiCaller = new ProtectedApiCallHelper(httpClient);
-                    object ApiResult = await apiCaller.CallWebApiAndProcessResultASync(url, result.AccessToken);
+                    object ApiResult = await apiCaller.CallWebApiAndProcessResultASync(webUrl, result.AccessToken);
                     Console.WriteLine(ApiResult.GetType());
-                    if (ApiResult.GetType() == typeof(byte[]))
+                    JObject JsonObject = JObject.Parse(ApiResult.ToString());
+
+                    if (JsonObject.ContainsKey("error") && JsonObject != null)
                     {
-                        //await System.IO.File.WriteAllBytesAsync("hello_world.pdf", (byte[])ApiResult);
-                        Console.WriteLine("Converting doc to PDF");
-                        JObject ocrRespons = await apiCaller.CallOCRApiASync("https://westeurope.api.cognitive.microsoft.com/vision/v3.2/read/analyze?language=en", (byte[])ApiResult);
-                        Console.WriteLine("Done");
-                        
-                        return ocrRespons;
+                        RootError error = JsonConvert.DeserializeObject<RootError>(JsonObject.ToString());
+
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"Failed to call the web API: {error.Error.Message}");
+
+                        // Note that if you got reponse.Code == 403 and reponse.content.code == "Authorization_RequestDenied"
+                        // this is because the tenant admin as not granted consent for the application to call the Web API
+                        Console.WriteLine($"Content: {error.Error.Message}");
+                        Console.ResetColor();
+                        return null;
                     }
-                    else if (ApiResult.GetType() == typeof(JObject))
-                    {
-                        JObject JsonObject = JObject.Parse(ApiResult.ToString());
-
-                        if (JsonObject.ContainsKey("error") && JsonObject != null)
-                        {
-                            RootError error = JsonConvert.DeserializeObject<RootError>(JsonObject.ToString());
-
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            Console.WriteLine($"Failed to call the web API: {error.Error.Message}");
-
-                            // Note that if you got reponse.Code == 403 and reponse.content.code == "Authorization_RequestDenied"
-                            // this is because the tenant admin as not granted consent for the application to call the Web API
-                            Console.WriteLine($"Content: {error.Error.Message}");
-                            Console.ResetColor();
-                            return null;
-                        }
-                        return JsonObject;
-                    }
-                    //Display(ApiResult);
+                    return JsonObject;
+                    
                     
                 }
                 catch (Exception ex)

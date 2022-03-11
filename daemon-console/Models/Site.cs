@@ -9,13 +9,18 @@ namespace daemon_console.Models
     {
         [JsonProperty("@microsoft.graph.downloadUrl")]
         public string MicrosoftGraphDownloadUrl { get; set; }
-        public DateTime createdDateTime { get; set; }
-        public string eTag { get; set; }
+        [JsonProperty("createdDateTime")]
+        public DateTime CreatedDateTime { get; set; }
+        [JsonProperty("eTag")]
+        public string ETag { get; set; }
         private string _rootSiteUrl;
-        public string rootSiteUrl { get => _rootSiteUrl; }
+        [JsonProperty("rootSiteUrl")]
+        public string RootSiteUrl { get => _rootSiteUrl; }
         private string _siteId;
-        public string siteId { get => _siteId; }
-        public string id
+        [JsonProperty("siteId")]
+        public string SiteId { get => _siteId; }
+        [JsonProperty("id")]
+        public string Id
         {
             get => $"Root site: {_rootSiteUrl}, site id: {_siteId}";
             set
@@ -25,18 +30,27 @@ namespace daemon_console.Models
                 _siteId = splitedString[1];
             }
         }
+        [JsonProperty("lastModifiedDateTime")]
+        public DateTime LastModifiedDateTime { get; set; }
+        [JsonProperty("name")]
+        public string Name { get; set; }
+        [JsonProperty("webUrl")]
+        public string WebUrl { get; set; }
+        [JsonProperty("cTag")]
 
-        public DateTime lastModifiedDateTime { get; set; }
-        public string name { get; set; }
-        public string webUrl { get; set; }
-        public string cTag { get; set; }
-        public int size { get; set; }
-        public CreatedBy createdBy { get; set; }
-        public LastModifiedBy lastModifiedBy { get; set; }
-        public ParentReference parentReference { get; set; }
+        public string CTag { get; set; }
+        [JsonProperty("size")]
+        public int Size { get; set; }
+        [JsonProperty("createdBy")]
+        public CreatedBy CreatedBy { get; set; }
+        [JsonProperty("lastModifiedBy")]
+        public LastModifiedBy LastModifiedBy { get; set; }
+        [JsonProperty("parentReference")]
+        public ParentReference ParentReference { get; set; }
         [JsonProperty("file")]
         public SiteFile File { get; set; }
-        public FileSystemInfo fileSystemInfo { get; set; }
+        [JsonProperty("fileSystemInfo")]
+        public FileSystemInfo FileSystemInfo { get; set; }
 
     }
 }
