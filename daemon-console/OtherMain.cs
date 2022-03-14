@@ -20,8 +20,9 @@ namespace daemon_console
             try
             {
                 //string url = ApiCaller.GetSite();
-                string url = ApiCaller.GetSite();
+                string url = ApiCaller.GetSite("?search=*");
                 JObject apiResult = ApiCalls.GetGraphData(url).GetAwaiter().GetResult();
+                //Console.WriteLine(apiResult.ToString());    
                 SiteCall siteObject = JsonConvert.DeserializeObject<SiteCall>(apiResult.ToString());
                 //Console.WriteLine(siteObject.value.First().siteId);
                 if (siteObject != null)
@@ -30,22 +31,25 @@ namespace daemon_console
                     {
                         if (!site.WebUrl.Contains("/personal") && site.Name != null && site.WebUrl.Contains("Retail"))
                         {
-                            Console.WriteLine(site.SiteId);
+                            Console.WriteLine(site.Name);
                             /*
                             url = $"sites/{site.siteId}/columns";
                             JObject result = ApiManager.RunAsync(url).GetAwaiter().GetResult();
                             Console.WriteLine(result.ToString());*/
                             string siteUrl = ApiCaller.GetDriveBySite(site.SiteId);
                             JObject driveResult = ApiCalls.GetGraphData(siteUrl).GetAwaiter().GetResult();
-                            //Console.WriteLine(site.id);
+                            Console.WriteLine(site.Name);
+                            Console.WriteLine(driveResult.ToString());  
                             if (driveResult != null)
                             {
                                 Drive driveObject = JsonConvert.DeserializeObject<Drive>(driveResult.ToString());
-
+                                Console.WriteLine(driveObject.Name);
                                 string dirUrl = ApiCaller.GetFilesByDrive(driveObject.Id);
                                 if (dirUrl != null)
                                 {
                                     JObject result = await ApiCalls.GetInsideDir(dirUrl, driveObject);
+                                    DirRoot dirObject = JsonConvert.DeserializeObject<DirRoot>(result.ToString());
+                                    Console.WriteLine(dirObject.Files[0].Name.ToString());
                                 }
 
                             }

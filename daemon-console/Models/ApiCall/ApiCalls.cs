@@ -175,7 +175,7 @@ namespace daemon_console.Models.ApiCalls
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex);
-                    JObject error = ErrorHandler.CreateNewError("Error occured while calling for the graph API");
+                    JObject error = ErrorHandler.CreateNewError("Real bad", "Error occured while calling for the graph API");
                     return error;
                 }
             }
@@ -250,33 +250,44 @@ namespace daemon_console.Models.ApiCalls
                 }
                 else
                 {
-                    JObject standardError = ErrorHandler.CreateNewError("Call not succesfull");
+                    JObject standardError = ErrorHandler.CreateNewError("Real bad", "Call not succesfull");
                     return standardError;
                 }
 
             }
             else
             {
-                JObject standardError = ErrorHandler.CreateNewError("No accestoken provided");
+                JObject standardError = ErrorHandler.CreateNewError("Real bad", "No accestoken provided");
                 return standardError;
             }
         }
         private static async Task<JObject> GetFile(Drive driveObject, FileSP fileObject)
         {
             JObject result = new JObject();
-            string[] files = new string[]
+            Console.WriteLine(fileObject.Name);
+            string[] fileFormats = new string[]
             {
-                "csv", "doc", "docx", "odp", "ods", "odt", "pot", "potm", "potx", "pps", "ppsx", "ppsxm", "ppt", "pptm", "pptx", "rtf", "xls", "xlsx"
+                "csv", "doc", "docx", "odp", "ods", "odt", "pot", "potm", "potx", "pps", "ppsx", "ppsxm", "ppt", "pptm", "pptx", "rtf", "xls", "xlsx", "pdf"
             };
-            if (files.Any(fileObject.Name.Contains))
+            string[] nonConvertable = new string[]
+            {
+                
+            };
+            if (fileFormats.Any(fileObject.Name.Contains))
             {
                 string fileUrl = $"/drives/{driveObject.Id}/items/{fileObject.Id}?expand=fields"; //
                 /*if (fileObject.Name.Contains(".pdf"))*/
                 result = await GetPDF(driveObject, fileObject);
             }
+            //else if (nonConvertable.Any(fileObject.Name.Contains))
+            //{
+            //    string fileUrl = $"/drives/{driveObject.Id}/items/{fileObject.Id}?expand=fields"; //
+            //    /*if (fileObject.Name.Contains(".pdf"))*/
+            //    result = await GetPDF(driveObject, fileObject);
+            //}
             else
             {
-                result = ErrorHandler.CreateNewError("Not a supported documenttype");
+                result = ErrorHandler.CreateNewError("Real bad", "Not a supported documenttype");
             }
             return result;
 
@@ -288,16 +299,20 @@ namespace daemon_console.Models.ApiCalls
             DirRoot dirObject = JsonConvert.DeserializeObject<DirRoot>(apiResult.ToString());
             foreach (var dirContent in dirObject.Files)
             {
-                if (dirContent.Size > 0)
+                if (dirContent.Folder != null)
+                {
+                    //Console.WriteLine(dirContent.Folder.ChildCount);
+                    //Console.WriteLine(dirContent.WebUrl);
+                    //string dirUrl = ApiCaller.GetFilesByDrive(driveObject.Id, "/schematics");
+                    //result = await GetInsideDir(dirUrl, driveObject);
+                    Console.WriteLine(dirContent.Name);
+                }
+            
+                else if (dirContent.Folder == null)
                 {
                     /* Console.WriteLine(dirContent.name);
                      Console.WriteLine(dirContent.eTag);*/
                     result = await GetFile(driveObject, dirContent);
-                }
-                else if (dirContent.Folder.ChildCount > 0)
-                {
-                    Console.WriteLine(dirContent.Folder.ChildCount);
-                    result = await GetInsideDir(dirContent.WebUrl, driveObject);
                 }
 
             }
@@ -305,7 +320,17 @@ namespace daemon_console.Models.ApiCalls
         }
         private static async Task<JObject> GetPDF(Drive driveObject, FileSP fileObject)
         {
-            string pdfUrl = $"/drives/{driveObject.Id}/root:/{fileObject.Name.Replace(" ", "%")}:/content?format=pdf";
+            //string pdfUrl = $"/drives/{driveObject.Id}/root:/{fileObject.Name.Replace(" ", "%")}:/content?format=pdf";
+            Guid tempFileGuid = Guid.NewGuid();
+            FileSP tempFile = new FileSP
+            {
+                Id = tempFileGuid,
+                Name = fileObject.Name,
+
+            }
+            string pdfUrl = ApiCaller.GetPDFBy(driveObject.Id, fileObject.Name);
+            Console.WriteLine(pdfUrl);
+            
             JObject apiResult = await GetGraphData(pdfUrl);
             return apiResult;
 

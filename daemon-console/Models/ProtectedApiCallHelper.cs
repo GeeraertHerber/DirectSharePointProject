@@ -13,6 +13,7 @@ using daemon_console.Models.OCR;
 using System.Text;
 using System.Collections.Generic;
 using daemon_console.Models.Analytics;
+using daemon_console.Models.Errors;
 
 namespace daemon_console
 {
@@ -178,40 +179,34 @@ namespace daemon_console
                     }
                     catch
                     {
-                        RootError error = new RootError
-                        {
-                            Error = new Error
-                            {
-                                Code = "Problem occured: empty string",
-                                Message = "Not good",
-                                InnerError = new InnerError
-                                {
-                                    RequestId = Guid.NewGuid(),
-                                    Date = DateTime.Now,
-                                    ClientRequestId = Guid.NewGuid(),
-                                    Code = "Problem occured: empty string"
-                                }
-                            }
-                        };
-                        JObject errorJson = (JObject)JsonConvert.SerializeObject(error.ToString());
+                        JObject errorJson = ErrorHandler.CreateNewError("Real bad", "Conversion not succesfull");
                         return errorJson;
                     }
                     
                 }
                 else
                 {
-                    string content = await response.Content.ReadAsStringAsync();
-                    RootError error = JsonConvert.DeserializeObject<RootError>(content);
+                    try
+                    { 
+                        string content = await response.Content.ReadAsStringAsync();
+                        RootError error = JsonConvert.DeserializeObject<RootError>(content);
 
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"Failed to call the web API: {error.Error.Message}");
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"Failed to call the web API: {error.Error.Message}");
                     
 
-                    // Note that if you got reponse.Code == 403 and reponse.content.code == "Authorization_RequestDenied"
-                    // this is because the tenant admin as not granted consent for the application to call the Web API
-                    Console.WriteLine($"Content: {error.Error.Message}");
-                    Console.ResetColor();
-                    return error;
+                        // Note that if you got reponse.Code == 403 and reponse.content.code == "Authorization_RequestDenied"
+                        // this is because the tenant admin as not granted consent for the application to call the Web API
+                        Console.WriteLine($"Content: {error.Error.Message}");
+                        Console.ResetColor();
+                        return error;
+                    }
+                    catch
+                    {
+                        string content = await response.Content.ReadAsStringAsync();
+                        JObject errorJson = ErrorHandler.CreateNewError("Real bad", content);
+                        return errorJson;
+                    }
                 }
                
             }

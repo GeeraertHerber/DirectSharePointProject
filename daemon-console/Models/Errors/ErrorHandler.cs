@@ -8,14 +8,14 @@ namespace daemon_console.Models.Errors
 {
     internal class ErrorHandler
     {
-        public static JObject CreateNewError(string errorMessage)
+        public static JObject CreateNewError(string errorCode, string errorMessage)
         {
             RootError error = new RootError
             {
                 Error = new Error
                 {
-                    Code = errorMessage,
-                    Message = "Not good",
+                    Code = errorCode,
+                    Message = errorMessage,
                     InnerError = new InnerError
                     {
                         RequestId = Guid.NewGuid(),
@@ -25,7 +25,8 @@ namespace daemon_console.Models.Errors
                     }
                 }
             };
-            JObject errorJson = (JObject)JsonConvert.SerializeObject(error.ToString());
+            JObject errorJson = JObject.FromObject(error);
+            Console.WriteLine(errorJson.ToString());
             return errorJson;
         }
     }

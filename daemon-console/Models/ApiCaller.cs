@@ -45,10 +45,29 @@ namespace daemon_console.Models
             return url;
         }
 
+
         public static string GetFilesByDrive(string driveId, string pathRelative = "")
         {
             string url;
-            url = UrlCreator($"/drives/{driveId}/root:/{pathRelative}:/children");
+            if (pathRelative == "")
+            {
+                url = UrlCreator($"drives/{driveId}/root/children");
+                
+            }
+            else
+            {
+                url = UrlCreator($"drives/{driveId}/root:{pathRelative}:/children");
+            }
+           
+            Console.WriteLine(url);
+            return url;
+        }
+
+        public static string GetPDFBy(string driveId, string fileName)
+        {
+            fileName = fileName.Replace(" ", "%");
+            string url = $"/drives/{driveId}/root:/{fileName}:/content?format=pdf";
+            url = UrlCreator(url);
             return url;
         }
     }
