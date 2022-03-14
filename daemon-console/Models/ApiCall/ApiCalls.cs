@@ -318,16 +318,26 @@ namespace daemon_console.Models.ApiCalls
             }
             return result;
         }
+
+        private static Random random = new Random();
+
+        public static string RandomString(int length)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            return new string(Enumerable.Repeat(chars, length)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
         private static async Task<JObject> GetPDF(Drive driveObject, FileSP fileObject)
         {
             //string pdfUrl = $"/drives/{driveObject.Id}/root:/{fileObject.Name.Replace(" ", "%")}:/content?format=pdf";
-            Guid tempFileGuid = Guid.NewGuid();
+            string tempFileId = RandomString(34);
             FileSP tempFile = new FileSP
             {
-                Id = tempFileGuid,
+                Id = tempFileId,
                 Name = fileObject.Name,
 
-            }
+
+            };
             string pdfUrl = ApiCaller.GetPDFBy(driveObject.Id, fileObject.Name);
             Console.WriteLine(pdfUrl);
             
