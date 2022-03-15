@@ -46,8 +46,8 @@ namespace daemon_console
         {
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
 
-            string endpoint = config.TextAn1;
-            string url = $"https://{endpoint}/text/analytics/v3.2-preview.2/analyze";
+            string endpoint = config.TextAnEndPoint;
+            string url = $"{endpoint}text/analytics/v3.2-preview.2/analyze";
 
             HttpClient httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.OCRKey1}");

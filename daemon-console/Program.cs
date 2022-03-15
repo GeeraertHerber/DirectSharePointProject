@@ -32,7 +32,7 @@ namespace daemon_console
                 {
                     //string url = ApiCaller.GetSite();
                     string url = ApiCaller.GetSite("b!8gBvwHeRuECjw4izLaZWvHdN3S3rz75Kvhyrf0kHHx9SiVwv01P_Solc6sU6SAea");
-                    JObject apiResult = ApiCalls.GetGraphData(url).GetAwaiter().GetResult();
+                    JObject apiResult = (JObject)ApiCalls.GetGraphData(url).GetAwaiter().GetResult();
                     SiteCall siteObject = JsonConvert.DeserializeObject<SiteCall>(apiResult.ToString());
                     //Console.WriteLine(siteObject.value.First().siteId);
                     if (siteObject != null)
@@ -40,7 +40,7 @@ namespace daemon_console
                         foreach (var site in siteObject.Value)
                         {
                             string siteUrl = ApiCaller.GetDriveBySite(site.SiteId);
-                            JObject driveResult = ApiCalls.GetGraphData(siteUrl).GetAwaiter().GetResult();
+                            JObject driveResult = (JObject)ApiCalls.GetGraphData(siteUrl).GetAwaiter().GetResult();
                             Console.WriteLine(site.Id);
                             if (driveResult != null)
                             {

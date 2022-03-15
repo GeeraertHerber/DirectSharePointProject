@@ -192,38 +192,43 @@ namespace daemon_console.Models.ApiCalls
         {
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
 
-            string endpoint = config.TextAn1;
-            string url = $"https://{endpoint}/text/analytics/v3.2-preview.2/analyze";
+            string endpoint = config.TextAnEndPoint;
+            string url = $"{endpoint}text/analytics/v3.2-preview.2/analyze";
 
             HttpClient httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.OCRKey1}");
+            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.SPTextKey1}");
             string stringedContent = string.Join("", content);
-            var analyticsObject = new AnalyticsRoot
+
+            List<Document> documentList = new List<Document>();
+            documentList.Add(
+                new Document
+                {
+                    Id = "1",
+                    Language = "en",
+                    Text = stringedContent
+                });
+
+            List<ExtractiveSummarizationTask> extractTask = new List<ExtractiveSummarizationTask>();
+            extractTask.Add(
+                new ExtractiveSummarizationTask
+                {
+                    Parameters = new Parameters
+                    {
+                        ModelVersion = "Latest"
+                    }
+                });
+
+            AnalyticsRoot analyticsObject = new AnalyticsRoot
             {
                 DisplayName = "Extracting sentiment",
-                AnalysisInput = {
-                    Documents =
-                    {
-                        new Document
-                        {
-                            Id = "1",
-                            Language = "en",
-                            Text = stringedContent
-                        }
-                    }
+                AnalysisInput = new AnalysisInput
+                {
+                    Documents = documentList
                 },
-                Tasks = {
-                    ExtractiveSummarizationTasks =
-                    {
-                        new ExtractiveSummarizationTask
-                        {
-                            Parameters = {
-                                ModelVersion = "latest"
-                            }
-                        }
-                    }
+                Tasks = new Tasks
+                {
+                    ExtractiveSummarizationTasks = extractTask
                 }
-
             };
             Console.WriteLine(stringedContent);
             string jsonString = JsonConvert.SerializeObject(analyticsObject);
@@ -270,7 +275,7 @@ namespace daemon_console.Models.ApiCalls
         //}
         private static async Task<object> GetFile(Drive driveObject, FileSP fileObject)
         {
-            JObject result = new JObject();
+            object result = new object();
             Console.WriteLine(fileObject.Name);
             string[] fileFormats = new string[]
             {
@@ -281,7 +286,7 @@ namespace daemon_console.Models.ApiCalls
             {
                 //string fileUrl = $"/drives/{driveObject.Id}/items/{fileObject.Id}?expand=fields"; //
                 /*if (fileObject.Name.Contains(".pdf"))*/
-                byte[] pdfResult = await ConvertPDF(driveObject, fileObject);
+                result = await ConvertPDF(driveObject, fileObject);
             }
 
             //else if (nonConvertable.Any(fileObject.Name.Contains))
@@ -294,8 +299,7 @@ namespace daemon_console.Models.ApiCalls
             else if (fileObject.Name.Contains(".pdf"))
             {
                 string url = ApiCaller.GetPDF(driveObject.Id, fileObject.Name);
-                byte[] pdfResult = (byte[])await GetGraphData(url);
-
+                result = await GetGraphData(url);
             }
             else
             {
@@ -327,9 +331,10 @@ namespace daemon_console.Models.ApiCalls
                     object fileResult = await GetFile(driveObject, dirContent);
                     if (fileResult is byte[] fileByteArray)
                     {
-                        OCRResponse ocrResult = await PostOCRAsync(fileByteArray);
+                        OCRResponse ocrResult = await PostOCRAsync(fileByteArray, "https://ocrdirecttester.cognitiveservices.azure.com/vision/v3.2/read/analyze?language=en");
                         string[] wordArray = ExtractWords(ocrResult);
                         result = await GetAnalytics(wordArray);
+                        Console.WriteLine(result.ToString());
                     }
                 }
 
@@ -359,9 +364,9 @@ namespace daemon_console.Models.ApiCalls
             string pdfUrl = ApiCaller.GetConvertFilePDF(driveObject.Id, fileObject.Name);
             Console.WriteLine(pdfUrl);
             
-            object apiResult = await GetGraphData(pdfUrl);
-            byte[] resultObject = JsonConvert.DeserializeObject<byte[]>(apiResult.ToString());
-            return resultObject;
+            byte[] apiResult = (byte[]) await GetGraphData(pdfUrl);
+            //byte[] resultObject = JsonConvert.DeserializeObject<byte[]>(apiResult);
+            return apiResult;
 
         }
         private static string[] ExtractWords(OCRResponse ocrObject)
