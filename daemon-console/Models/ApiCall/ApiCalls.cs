@@ -48,11 +48,12 @@ namespace daemon_console.Models.ApiCalls
             defaultCertificateLoader.LoadIfNeeded(certificateDescription);
             return certificateDescription.Certificate;
         }
-        public static async Task<JObject> CallCompletedOCRASync(string responseurl)
+        
+        public static async Task<JObject> CompleteCallAsync(string responseurl, string key)
         {
-            AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
+          
             HttpClient httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.OCRKey1}");
+            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{key}");
             var respons = await httpClient.GetAsync(responseurl);
             string json = await respons.Content.ReadAsStringAsync();
 
@@ -80,7 +81,7 @@ namespace daemon_console.Models.ApiCalls
                 while (running)
 
                 {
-                    ocrResponse.Add(await CallCompletedOCRASync(responseUrl.First()));
+                    ocrResponse.Add(await CompleteCallAsync(responseUrl.First(), config.OCRKey1));
                     if (!(ocrResponse[^1].GetValue("status").ToString() == "running"))
                     {
                        
@@ -188,7 +189,7 @@ namespace daemon_console.Models.ApiCalls
             }
             throw new Exception("No apiresult came back");
         }
-        public static async Task<HttpResponseMessage> PostAnalyticsText(string[] content)
+        public static async Task<HttpResponseMessage> PostAnalyticsText(List<Document> documentsList)
         {
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
 
@@ -197,41 +198,31 @@ namespace daemon_console.Models.ApiCalls
 
             HttpClient httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.SPTextKey2}");
-            string stringedContent = string.Join("", content);
 
-            List<Document> documentList = new List<Document>();
-            documentList.Add(
-                        new Document
-                        {
-                            Id = "1",
-                            Language = "en",
-                            Text = stringedContent
-                        }
-                );
 
-            List<ExtractiveSummarizationTask> extractTask = new List<ExtractiveSummarizationTask>();
-            extractTask.Add(
+            List<ExtractiveSummarizationTask> extractTask = new List<ExtractiveSummarizationTask>
+            {
                 new ExtractiveSummarizationTask
                 {
                     Parameters = new Parameters
                     {
                         ModelVersion = "Latest"
                     }
-                });
+                }
+            };
 
             AnalyticsRoot analyticsObject = new AnalyticsRoot
             {
                 DisplayName = "Extracting sentiment",
                 AnalysisInput = new AnalysisInput
                 {
-                    Documents = documentList
+                    Documents = documentsList
                 },
                 Tasks = new Tasks
                 {
                     ExtractiveSummarizationTasks = extractTask
                 }
             };
-            Console.WriteLine(stringedContent);
             string jsonString = JsonConvert.SerializeObject(analyticsObject, Formatting.None, 
                 new JsonSerializerSettings
             {
@@ -242,7 +233,6 @@ namespace daemon_console.Models.ApiCalls
             httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             HttpResponseMessage response = await httpClient.PostAsync(url, httpContent);
             Console.WriteLine(response.ToString());
-            JObject json = JObject.Parse(jsonString);
             return response;
         }
         //public static async Task<object> GetWebAsync(string webApiUrl, string accessToken, HttpClient httpClient)
@@ -314,11 +304,13 @@ namespace daemon_console.Models.ApiCalls
             return result;
 
         }
-        public static async Task<JObject> GetInsideDir(string url, Drive driveObject)
+        public static async void GetInsideDir(string url, Drive driveObject)
         {
             JObject result = new JObject();
+            int globalCounter = 0;
             object apiResult = await GetGraphData(url);
             DirRoot dirObject = JsonConvert.DeserializeObject<DirRoot>(apiResult.ToString());
+            List<Document> documentList = new List<Document>();
             foreach (var dirContent in dirObject.Files)
             {
                 if (dirContent.Folder != null)
@@ -338,14 +330,29 @@ namespace daemon_console.Models.ApiCalls
                     if (fileResult is byte[] fileByteArray)
                     {
                         OCRResponse ocrResult = await PostOCRAsync(fileByteArray, "https://ocrdirecttester.cognitiveservices.azure.com/vision/v3.2/read/analyze?language=en");
+
                         string[] wordArray = ExtractWords(ocrResult);
-                        result = await GetAnalytics(wordArray);
+                        Document document = new Document
+                        {
+                            Id = (documentList.Count() + 1).ToString(),
+                            Language = "en",
+                            Text = String.Join("", wordArray)
+                        };
+                        globalCounter++;
+                        documentList.Add(document);
                         Console.WriteLine(result.ToString());
                     }
                 }
+                if (documentList.Count == 20)
+                {
+                   
+                    JObject analyticsResponse = await GetAnalytics(documentList);
+                    Console.WriteLine(analyticsResponse);
+                }
+
 
             }
-            return result;
+            Console.WriteLine($"Documents scanned: {globalCounter}");
         }
 
         private static readonly Random random = new Random();
@@ -377,39 +384,67 @@ namespace daemon_console.Models.ApiCalls
         }
         private static string[] ExtractWords(OCRResponse ocrObject)
         {
-            List<string> wordList = new List<string>();
-            //Console.WriteLine(wordList);
-            foreach (ReadResult result in ocrObject.AnalyzeResult.ReadResults)
+            try
             {
-                foreach (Line line in result.Lines)
+                List<string> wordList = new List<string>();
+                //Console.WriteLine(wordList);
+                foreach (ReadResult result in ocrObject.AnalyzeResult.ReadResults)
                 {
-                    Console.WriteLine(line.Text);
-                    foreach (var word in line.Text.Split(" "))
+                    foreach (Line line in result.Lines)
                     {
-                        wordList.Add(word);
-                    }
+                        Console.WriteLine(line.Text);
+                        foreach (var word in line.Text.Split(" "))
+                        {
+                            wordList.Add(word);
+                        }
 
-                    /*foreach (string word in line.Text)
-                    {
-                        Console.WriteLine(word.Text);
-                    }*/
+                        /*foreach (string word in line.Text)
+                        {
+                            Console.WriteLine(word.Text);
+                        }*/
+                    }
                 }
+                string[] words = wordList.ToArray();
+                //JObject wordResult = JObject.Parse(stringedWordList);
+                return words;
             }
-            string[] words = wordList.ToArray();
-            string stringedWordList = String.Join("", words);
-            //JObject wordResult = JObject.Parse(stringedWordList);
-            return words;
+            catch (Exception ex)
+            {
+                return new string[0];
+            }
+           
 
 
         }
-        private static async Task<JObject> GetAnalytics(string[] wordArray)
+        private static async Task<JObject> GetAnalytics(List<Document> documentList)
         {
-            Console.WriteLine(wordArray.Length);
-            HttpResponseMessage httpResponse = await ApiCalls.PostAnalyticsText(wordArray);
-            Console.WriteLine(httpResponse.StatusCode);
-            string json = await httpResponse.Content.ReadAsStringAsync();
-            JObject analyticsObject = (AnalyticsRoot)JsonConvert.DeserializeObject(json);
-            return analyticsObject;
+            AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
+            Console.WriteLine(documentList.Count);
+            HttpResponseMessage httpResponse = await ApiCalls.PostAnalyticsText(documentList);
+            List<JObject> analResponse = new List<JObject>();
+            AnalyticsRoot analObject = new AnalyticsRoot();
+            //Console.WriteLine(httpResponse.StatusCode);
+            if (httpResponse.Headers.TryGetValues("operation-location", out IEnumerable<string> responseUrl))
+            {
+                //Console.WriteLine(responseUrl.First());
+                bool running = true;
+                while (running)
+
+                {
+                    analResponse.Add(await CompleteCallAsync(responseUrl.First(), config.SPTextKey2));
+                    if (!(analResponse[^1].GetValue("status").ToString() == "running"))
+                    {
+
+                        break;
+                    }
+                    await Task.Delay(2000);
+                }
+                analObject = JsonConvert.DeserializeObject<AnalyticsRoot>(analResponse[^1].ToString());
+            }
+            JObject returnObject = JObject.FromObject(analObject);
+            
+            //Console.WriteLine(analyticsObject.ToString());
+            return returnObject;
         }
         
 

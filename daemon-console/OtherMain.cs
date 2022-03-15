@@ -14,9 +14,9 @@ namespace daemon_console
 {
     class OtherMain
     {
-        public static async void MainTester()
+        public static void MainTester()
         {
-            
+
             try
             {
                 //string url = ApiCaller.GetSite();
@@ -38,7 +38,7 @@ namespace daemon_console
                             Console.WriteLine(result.ToString());*/
                             string siteUrl = ApiCaller.GetDriveBySite(site.SiteId);
                             object driveResult = ApiCalls.GetGraphData(siteUrl).GetAwaiter().GetResult();
-          
+
                             //Console.WriteLine(site.Name);
                             //Console.WriteLine(driveResult.ToString());  
                             if (driveResult != null)
@@ -46,11 +46,10 @@ namespace daemon_console
                                 Drive driveObject = JsonConvert.DeserializeObject<Drive>(driveResult.ToString());
                                 Console.WriteLine(driveObject.Name);
                                 string dirUrl = ApiCaller.GetFilesByDrive(driveObject.Id);
-                                
-                                JObject result = await ApiCalls.GetInsideDir(dirUrl, driveObject);
-                                DirRoot dirObject = JsonConvert.DeserializeObject<DirRoot>(result.ToString());
-                                Console.WriteLine(dirObject.Files[0].Name.ToString());
-                                
+
+                                ApiCalls.GetInsideDir(dirUrl, driveObject);
+                                Console.WriteLine("Scanned a site");
+
 
                             }
                         }
@@ -62,14 +61,14 @@ namespace daemon_console
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine(ex.Message);
                 Console.ResetColor();
-            }   
-  
+            }
+
             Console.WriteLine("Press any key to exit");
             Console.ReadKey();
         }
-        
 
-       
-        
+
+
+
     }
 }

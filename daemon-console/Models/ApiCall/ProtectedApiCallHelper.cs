@@ -111,7 +111,6 @@ namespace daemon_console
                     ocrResponse.Add(await CallCompletedOCRASync(responseUrl.First(), config));
                     if (!(ocrResponse[^1].GetValue("status").ToString() == "running"))
                     {
-                        running = false;
                         break;
                     }
                     await Task.Delay(2000);
