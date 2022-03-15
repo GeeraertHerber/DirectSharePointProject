@@ -196,7 +196,7 @@ namespace daemon_console.Models.ApiCalls
             string url = $"{endpoint}text/analytics/v3.2-preview.2/analyze";
 
             HttpClient httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.SPTextKey1}");
+            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.SPTextKey2}");
             string stringedContent = string.Join("", content);
 
             List<Document> documentList = new List<Document>();
@@ -232,9 +232,14 @@ namespace daemon_console.Models.ApiCalls
                 }
             };
             Console.WriteLine(stringedContent);
-            string jsonString = JsonConvert.SerializeObject(analyticsObject);
+            string jsonString = JsonConvert.SerializeObject(analyticsObject, Formatting.None, 
+                new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore
+            });
             //body.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             HttpContent httpContent = new StringContent(jsonString);
+            httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             HttpResponseMessage response = await httpClient.PostAsync(url, httpContent);
             Console.WriteLine(response.ToString());
             JObject json = JObject.Parse(jsonString);
@@ -402,7 +407,9 @@ namespace daemon_console.Models.ApiCalls
             Console.WriteLine(wordArray.Length);
             HttpResponseMessage httpResponse = await ApiCalls.PostAnalyticsText(wordArray);
             Console.WriteLine(httpResponse.StatusCode);
-            return JObject.Parse(httpResponse.Content.ToString());
+            string json = await httpResponse.Content.ReadAsStringAsync();
+            JObject analyticsObject = (AnalyticsRoot)JsonConvert.DeserializeObject(json);
+            return analyticsObject;
         }
         
 

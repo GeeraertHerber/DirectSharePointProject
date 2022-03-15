@@ -67,7 +67,7 @@ namespace daemon_console
         /// (and identified by this CertificateName property)
         /// <remarks> 
         public string CertificateName { get; set; }
-        public string SPTextKey1 { get; set; }
+        public string SPTextKey2 { get; set; }
         public string OCRKey1 { get; set; }
         public string TextAnEndPoint { get; set; }
         //public string TextAnEndPoint { get; internal set; }

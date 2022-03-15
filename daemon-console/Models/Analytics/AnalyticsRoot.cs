@@ -15,5 +15,22 @@ namespace daemon_console.Models.Analytics
 
         [JsonProperty("tasks")]
         public Tasks Tasks { get; set; }
+        [JsonProperty("jobId")]
+        public string JobId { get; set; }
+
+        [JsonProperty("lastUpdateDateTime")]
+        public DateTime LastUpdateDateTime { get; set; }
+
+        [JsonProperty("createdDateTime")]
+        public DateTime CreatedDateTime { get; set; }
+
+        [JsonProperty("expirationDateTime")]
+        public DateTime ExpirationDateTime { get; set; }
+
+        [JsonProperty("status")]
+        public string Status { get; set; }
+
+        [JsonProperty("errors")]
+        public List<object> Errors { get; set; }
     }
 }

@@ -10,5 +10,13 @@ namespace daemon_console.Models.Analytics
     {
         [JsonProperty("parameters")]
         public Parameters Parameters { get; set; }
+        [JsonProperty("lastUpdateDateTime")]
+        public DateTime LastUpdateDateTime { get; set; }
+
+        [JsonProperty("state")]
+        public string State { get; set; }
+
+        [JsonProperty("results")]
+        public Results Results { get; set; }
     }
 }
