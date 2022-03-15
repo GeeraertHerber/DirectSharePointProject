@@ -201,12 +201,13 @@ namespace daemon_console.Models.ApiCalls
 
             List<Document> documentList = new List<Document>();
             documentList.Add(
-                new Document
-                {
-                    Id = "1",
-                    Language = "en",
-                    Text = stringedContent
-                });
+                        new Document
+                        {
+                            Id = "1",
+                            Language = "en",
+                            Text = stringedContent
+                        }
+                );
 
             List<ExtractiveSummarizationTask> extractTask = new List<ExtractiveSummarizationTask>();
             extractTask.Add(
@@ -298,7 +299,7 @@ namespace daemon_console.Models.ApiCalls
 
             else if (fileObject.Name.Contains(".pdf"))
             {
-                string url = ApiCaller.GetPDF(driveObject.Id, fileObject.Name);
+                string url = ApiCaller.GetPDF(driveObject.Id, fileObject.Id);
                 result = await GetGraphData(url);
             }
             else

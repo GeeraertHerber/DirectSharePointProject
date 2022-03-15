@@ -17,7 +17,7 @@ namespace daemon_console.Models.OCR
         public float Width { get; set; }
 
         [JsonPropertyName("height")]
-        public int Height { get; set; }
+        public float Height { get; set; }
 
         [JsonPropertyName("unit")]
         public string Unit { get; set; }

@@ -86,7 +86,7 @@ namespace daemon_console.Models
         {
             //fileName = fileName.Replace(" ", "%20");
             string url;
-            url = $"/drives/${driveId}/items/${itemId}/content";
+            url = $"drives/{driveId}/items/{itemId}/content";
             url = UrlCreator(url, true);
             return url;
         }

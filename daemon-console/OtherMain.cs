@@ -29,7 +29,7 @@ namespace daemon_console
                 {
                     foreach (var site in siteObject.Value)
                     {
-                        if (!site.WebUrl.Contains("/personal") && site.Name != null && site.WebUrl.Contains("ProjectFalcon-UXtest"))
+                        if (!site.WebUrl.Contains("/personal") && site.Name != null && site.WebUrl.Contains("Retail"))
                         {
                             Console.WriteLine(site.Name);
                             /*
