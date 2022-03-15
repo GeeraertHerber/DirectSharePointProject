@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace daemon_console.Models
 {
-    internal class FileSP
+    public class FileSP
     {
         [JsonProperty("application")]
         public Application Application { get; set; }
@@ -35,5 +35,7 @@ namespace daemon_console.Models
         public FileSystemInfo FileSystemInfo { get; set; }
         [JsonProperty("folder")]
         public Folder Folder { get; set; }
+        [JsonProperty("contents")]
+        public byte[] Contents { get; set; }
     }
 }

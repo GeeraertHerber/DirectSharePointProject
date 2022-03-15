@@ -21,7 +21,7 @@ namespace daemon_console
             {
                 //string url = ApiCaller.GetSite();
                 string url = ApiCaller.GetSite("?search=*");
-                JObject apiResult = ApiCalls.GetGraphData(url).GetAwaiter().GetResult();
+                object apiResult = ApiCalls.GetGraphData(url).GetAwaiter().GetResult();
                 //Console.WriteLine(apiResult.ToString());    
                 SiteCall siteObject = JsonConvert.DeserializeObject<SiteCall>(apiResult.ToString());
                 //Console.WriteLine(siteObject.value.First().siteId);
@@ -37,9 +37,10 @@ namespace daemon_console
                             JObject result = ApiManager.RunAsync(url).GetAwaiter().GetResult();
                             Console.WriteLine(result.ToString());*/
                             string siteUrl = ApiCaller.GetDriveBySite(site.SiteId);
-                            JObject driveResult = ApiCalls.GetGraphData(siteUrl).GetAwaiter().GetResult();
-                            Console.WriteLine(site.Name);
-                            Console.WriteLine(driveResult.ToString());  
+                            object driveResult = ApiCalls.GetGraphData(siteUrl).GetAwaiter().GetResult();
+          
+                            //Console.WriteLine(site.Name);
+                            //Console.WriteLine(driveResult.ToString());  
                             if (driveResult != null)
                             {
                                 Drive driveObject = JsonConvert.DeserializeObject<Drive>(driveResult.ToString());

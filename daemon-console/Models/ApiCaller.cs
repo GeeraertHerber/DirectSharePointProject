@@ -63,7 +63,7 @@ namespace daemon_console.Models
             return url;
         }
 
-        public static string GetPDFByDriveFile(string driveId, string fileName, string parentReference = null)
+        public static string GetConvertFilePDF(string driveId, string fileName, string parentReference = null)
         {
             //https://graph.microsoft.com/beta/drives/b!vFMTUH3YJ0iHv5pUatRpqXdN3S3rz75Kvhyrf0kHHx9SiVwv01P_Solc6sU6SAea/root:/Open.docx:/content?format=pdf
             //Call works only in BETA!!! Very important
@@ -79,6 +79,14 @@ namespace daemon_console.Models
                 url = $"drives/{driveId}/root:/{fileName}:/content?format=pdf";
             }
            
+            url = UrlCreator(url, true);
+            return url;
+        }
+        public static string GetPDF(string driveId, string itemId, string parentReference = null)
+        {
+            //fileName = fileName.Replace(" ", "%20");
+            string url;
+            url = $"/drives/${driveId}/items/${itemId}/content";
             url = UrlCreator(url, true);
             return url;
         }

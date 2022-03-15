@@ -60,7 +60,7 @@ namespace daemon_console.Models.ApiCalls
             //Console.WriteLine(ocrRespons.ToString());
             return ocrRespons;
         }
-        public static async Task<JObject> PostOCRAsync(string url, byte[] byteArray)
+        public static async Task<OCRResponse> PostOCRAsync(byte[] byteArray, string url = "")
         {
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
 
@@ -71,7 +71,7 @@ namespace daemon_console.Models.ApiCalls
             body.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
             HttpResponseMessage response = await httpClient.PostAsync(url, body);
             List<JObject> ocrResponse = new List<JObject>();
-            JObject ocrObject = new JObject();
+            OCRResponse ocrObject = new OCRResponse();
 
             if (response.Headers.TryGetValues("Operation-Location", out IEnumerable<string> responseUrl))
             {
@@ -88,13 +88,13 @@ namespace daemon_console.Models.ApiCalls
                     }
                     await Task.Delay(2000);
                 }
-                ocrObject = (JObject)JsonConvert.DeserializeObject(ocrResponse[^1].ToString());
+                ocrObject = JsonConvert.DeserializeObject< OCRResponse>(ocrResponse[^1].ToString());
             }
 
             return ocrObject;
             //httpClient..Add("Content-Type", "application/octet-stream");
         }
-        public static async Task<JObject> GetGraphData(string webUrl = null)
+        public static async Task<object> GetGraphData(string webUrl = null)
         {
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
 
@@ -151,14 +151,14 @@ namespace daemon_console.Models.ApiCalls
                 {
                     var httpClient = new HttpClient();
                     var apiCaller = new ProtectedApiCallHelper(httpClient);
-                    object ApiResult = await apiCaller.CallWebApiAndProcessResultASync(webUrl, result.AccessToken);
-                    Console.WriteLine(ApiResult.GetType());
-                    if (ApiResult is Byte[])
+                    object apiResult = await apiCaller.CallWebApiAndProcessResultASync(webUrl, result.AccessToken);
+                    Console.WriteLine(apiResult.GetType());
+                    if (apiResult is Byte[])
                     {
-                        ApiResult = Encoding.Default.GetString((byte[])ApiResult);
-                        Console.WriteLine(ApiResult);
+                        //Console.WriteLine(encodedPDF);
+                        return apiResult;
                     }
-                    JObject JsonObject = JObject.Parse(ApiResult.ToString());
+                    JObject JsonObject = JObject.Parse(apiResult.ToString());
 
                     if (JsonObject.ContainsKey("error") && JsonObject != null)
                     {
@@ -234,41 +234,41 @@ namespace daemon_console.Models.ApiCalls
             JObject json = JObject.Parse(jsonString);
             return response;
         }
-        public static async Task<object> GetWebAsync(string webApiUrl, string accessToken, HttpClient httpClient)
-        {
-            if (!string.IsNullOrEmpty(accessToken))
-            {
-                var defaultRequestHeaders = httpClient.DefaultRequestHeaders;
-                if (defaultRequestHeaders.Accept == null || !defaultRequestHeaders.Accept.Any(m => m.MediaType == "application/json"))
-                {
-                    httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                }
-                defaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        //public static async Task<object> GetWebAsync(string webApiUrl, string accessToken, HttpClient httpClient)
+        //{
+        //    if (!string.IsNullOrEmpty(accessToken))
+        //    {
+        //        var defaultRequestHeaders = httpClient.DefaultRequestHeaders;
+        //        if (defaultRequestHeaders.Accept == null || !defaultRequestHeaders.Accept.Any(m => m.MediaType == "application/json"))
+        //        {
+        //            httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        //        }
+        //        defaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-                HttpResponseMessage response = await httpClient.GetAsync(webApiUrl);
+        //        HttpResponseMessage response = await httpClient.GetAsync(webApiUrl);
 
-                HttpHeaders headers = response.Content.Headers;
-                //Console.WriteLine(headers.ToString());
-                if (response.IsSuccessStatusCode)
-                {
-                    string json = await response.Content.ReadAsStringAsync();
-                    JObject result = JsonConvert.DeserializeObject(json) as JObject;
-                    return result;
-                }
-                else
-                {
-                    JObject standardError = ErrorHandler.CreateNewError("Real bad", "Call not succesfull");
-                    return standardError;
-                }
+        //        HttpHeaders headers = response.Content.Headers;
+        //        //Console.WriteLine(headers.ToString());
+        //        if (response.IsSuccessStatusCode)
+        //        {
+        //            string json = await response.Content.ReadAsStringAsync();
+        //            JObject result = JsonConvert.DeserializeObject(json) as JObject;
+        //            return result;
+        //        }
+        //        else
+        //        {
+        //            JObject standardError = ErrorHandler.CreateNewError("Real bad", "Call not succesfull");
+        //            return standardError;
+        //        }
 
-            }
-            else
-            {
-                JObject standardError = ErrorHandler.CreateNewError("Real bad", "No accestoken provided");
-                return standardError;
-            }
-        }
-        private static async Task<JObject> GetFile(Drive driveObject, FileSP fileObject)
+        //    }
+        //    else
+        //    {
+        //        JObject standardError = ErrorHandler.CreateNewError("Real bad", "No accestoken provided");
+        //        return standardError;
+        //    }
+        //}
+        private static async Task<object> GetFile(Drive driveObject, FileSP fileObject)
         {
             JObject result = new JObject();
             Console.WriteLine(fileObject.Name);
@@ -276,34 +276,26 @@ namespace daemon_console.Models.ApiCalls
             {
                 "csv", "doc", "docx", "odp", "ods", "odt", "pot", "potm", "potx", "pps", "ppsx", "ppsxm", "ppt", "pptm", "pptx", "rtf", "xls", "xlsx"
             };
-            string[] nonConvertable = new string[]
-            {
-                
-            };
+            
             if (fileFormats.Any(fileObject.Name.Contains))
             {
                 //string fileUrl = $"/drives/{driveObject.Id}/items/{fileObject.Id}?expand=fields"; //
                 /*if (fileObject.Name.Contains(".pdf"))*/
-                result = await GetPDF(driveObject, fileObject);
+                byte[] pdfResult = await ConvertPDF(driveObject, fileObject);
             }
+
             //else if (nonConvertable.Any(fileObject.Name.Contains))
             //{
             //    string fileUrl = $"/drives/{driveObject.Id}/items/{fileObject.Id}?expand=fields"; //
             //    /*if (fileObject.Name.Contains(".pdf"))*/
             //    result = await GetPDF(driveObject, fileObject);
             //}
+
             else if (fileObject.Name.Contains(".pdf"))
             {
-                try
-                {
-                    string[] parentPathArray = fileObject.ParentReference.Path.Split(":");
-                    Console.WriteLine(parentPathArray[1]);
-                    result = (JObject)ApiCaller.GetPDFByDriveFile(driveObject.Id, fileObject.Name, parentPathArray[1].ToString());
-                }
-                catch
-                {
+                string url = ApiCaller.GetPDF(driveObject.Id, fileObject.Name);
+                byte[] pdfResult = (byte[])await GetGraphData(url);
 
-                }
             }
             else
             {
@@ -315,7 +307,7 @@ namespace daemon_console.Models.ApiCalls
         public static async Task<JObject> GetInsideDir(string url, Drive driveObject)
         {
             JObject result = new JObject();
-            JObject apiResult = await GetGraphData(url);
+            object apiResult = await GetGraphData(url);
             DirRoot dirObject = JsonConvert.DeserializeObject<DirRoot>(apiResult.ToString());
             foreach (var dirContent in dirObject.Files)
             {
@@ -332,40 +324,47 @@ namespace daemon_console.Models.ApiCalls
                 {
                     /* Console.WriteLine(dirContent.name);
                      Console.WriteLine(dirContent.eTag);*/
-                    result = await GetFile(driveObject, dirContent);
+                    object fileResult = await GetFile(driveObject, dirContent);
+                    if (fileResult is byte[] fileByteArray)
+                    {
+                        OCRResponse ocrResult = await PostOCRAsync(fileByteArray);
+                        string[] wordArray = ExtractWords(ocrResult);
+                        result = await GetAnalytics(wordArray);
+                    }
                 }
 
             }
             return result;
         }
 
-        private static Random random = new Random();
-
+        private static readonly Random random = new Random();
         public static string RandomString(int length)
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
             return new string(Enumerable.Repeat(chars, length)
                 .Select(s => s[random.Next(s.Length)]).ToArray());
         }
-        private static async Task<JObject> GetPDF(Drive driveObject, FileSP fileObject)
+        public static async Task<byte[]> GetPDF(Drive driveObject, FileSP fileObject)
         {
+            string url = ApiCaller.GetPDF(driveObject.Id, fileObject.Id);
+            byte[] pdfFile = (byte[])await GetGraphData(url);
+            return pdfFile;
+        }
+        private static async Task<byte[]> ConvertPDF(Drive driveObject, FileSP fileObject)
+        {
+            string[] parentPathArray = fileObject.ParentReference.Path.Split(":");
+            Console.WriteLine(parentPathArray[1]);
             //string pdfUrl = $"/drives/{driveObject.Id}/root:/{fileObject.Name.Replace(" ", "%")}:/content?format=pdf";
-            string tempFileId = RandomString(34);
-            FileSP tempFile = new FileSP
-            {
-                Id = tempFileId,
-                Name = fileObject.Name,
-
-
-            };
-            string pdfUrl = ApiCaller.GetPDFByDriveFile(driveObject.Id, fileObject.Name);
+            //
+            string pdfUrl = ApiCaller.GetConvertFilePDF(driveObject.Id, fileObject.Name);
             Console.WriteLine(pdfUrl);
             
-            JObject apiResult = await GetGraphData(pdfUrl);
-            return apiResult;
+            object apiResult = await GetGraphData(pdfUrl);
+            byte[] resultObject = JsonConvert.DeserializeObject<byte[]>(apiResult.ToString());
+            return resultObject;
 
         }
-        private static JObject ExtractWords(OCRResponse ocrObject)
+        private static string[] ExtractWords(OCRResponse ocrObject)
         {
             List<string> wordList = new List<string>();
             //Console.WriteLine(wordList);
@@ -387,8 +386,8 @@ namespace daemon_console.Models.ApiCalls
             }
             string[] words = wordList.ToArray();
             string stringedWordList = String.Join("", words);
-            JObject wordResult = JObject.Parse(stringedWordList);
-            return wordResult;
+            //JObject wordResult = JObject.Parse(stringedWordList);
+            return words;
 
 
         }
@@ -397,7 +396,7 @@ namespace daemon_console.Models.ApiCalls
             Console.WriteLine(wordArray.Length);
             HttpResponseMessage httpResponse = await ApiCalls.PostAnalyticsText(wordArray);
             Console.WriteLine(httpResponse.StatusCode);
-            return JObject.Parse(httpResponse.ToString());
+            return JObject.Parse(httpResponse.Content.ToString());
         }
         
 
