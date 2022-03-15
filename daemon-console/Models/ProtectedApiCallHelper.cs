@@ -12,6 +12,8 @@ using daemon_console.Models;
 using daemon_console.Models.OCR;
 using System.Text;
 using System.Collections.Generic;
+using daemon_console.Models.Analytics;
+using daemon_console.Models.Errors;
 
 namespace daemon_console
 {
@@ -39,16 +41,63 @@ namespace daemon_console
         /// <param name="accessToken">Access token used as a bearer security token to call the web API</param>
         /// <param name="processResult">Callback used to process the result of the call to the web API</param>
         /// 
-        public async Task<JObject> CallOCRApiASync(string url, byte[] byteArray)
+
+        public async Task<JObject> PostAnalyticsText(string[] content)
+        {
+            AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
+
+            string endpoint = config.TextAnEndPoint;
+            string url = $"{endpoint}text/analytics/v3.2-preview.2/analyze";
+
+            HttpClient httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.OCRKey1}");
+            string stringedContent = string.Join("", content);
+            var analyticsObject = new AnalyticsRoot
+            {
+                DisplayName = "Extracting sentiment",
+                AnalysisInput = {
+                    Documents =
+                    {
+                        new Document
+                        {
+                            Id = "1",
+                            Language = "en",
+                            Text = stringedContent
+                        }
+                    }
+                },
+                Tasks = {
+                    ExtractiveSummarizationTasks =
+                    {
+                        new ExtractiveSummarizationTask
+                        {
+                            Parameters = {
+                                ModelVersion = "latest"
+                            }
+                        }
+                    }
+                }
+
+            };
+            Console.WriteLine(stringedContent);
+            string jsonString = JsonConvert.SerializeObject(analyticsObject);
+            //body.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            HttpContent httpContent = new StringContent(jsonString);
+            HttpResponseMessage response = await httpClient.PostAsync(url, httpContent);
+            Console.WriteLine(response.ToString());
+            JObject json = JObject.Parse(jsonString);
+            return json;
+        }
+        public async Task<JObject> PostOCRAsync(string url, byte[] byteArray)
         {
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
 
             HttpClient httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.SPTextKey1}");
-            var content = new ByteArrayContent(byteArray);
-            
-            content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-            HttpResponseMessage response = await httpClient.PostAsync(url, content);
+            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.OCRKey1}");
+            var body = new ByteArrayContent(byteArray);
+
+            body.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+            HttpResponseMessage response = await httpClient.PostAsync(url, body);
             List<JObject> ocrResponse = new List<JObject>();
             JObject ocrObject = new JObject();
 
@@ -77,7 +126,7 @@ namespace daemon_console
         public async Task<JObject> CallCompletedOCRASync(string responseurl, AuthenticationConfig config)
         {
             HttpClient httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.SPTextKey1}");
+            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.OCRKey1}");
             var respons = await httpClient.GetAsync(responseurl);
             string json = await respons.Content.ReadAsStringAsync();
             
@@ -130,40 +179,34 @@ namespace daemon_console
                     }
                     catch
                     {
-                        RootError error = new RootError
-                        {
-                            Error = new Error
-                            {
-                                Code = "Problem occured: empty string",
-                                Message = "Not good",
-                                InnerError = new InnerError
-                                {
-                                    RequestId = Guid.NewGuid(),
-                                    Date = DateTime.Now,
-                                    ClientRequestId = Guid.NewGuid(),
-                                    Code = "Problem occured: empty string"
-                                }
-                            }
-                        };
-                        JObject errorJson = (JObject)JsonConvert.SerializeObject(error.ToString());
+                        JObject errorJson = ErrorHandler.CreateNewError("Real bad", "Conversion not succesfull");
                         return errorJson;
                     }
                     
                 }
                 else
                 {
-                    string content = await response.Content.ReadAsStringAsync();
-                    RootError error = JsonConvert.DeserializeObject<RootError>(content);
+                    try
+                    { 
+                        string content = await response.Content.ReadAsStringAsync();
+                        RootError error = JsonConvert.DeserializeObject<RootError>(content);
 
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"Failed to call the web API: {error.Error.Message}");
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"Failed to call the web API: {error.Error.Message}");
                     
 
-                    // Note that if you got reponse.Code == 403 and reponse.content.code == "Authorization_RequestDenied"
-                    // this is because the tenant admin as not granted consent for the application to call the Web API
-                    Console.WriteLine($"Content: {error.Error.Message}");
-                    Console.ResetColor();
-                    return error;
+                        // Note that if you got reponse.Code == 403 and reponse.content.code == "Authorization_RequestDenied"
+                        // this is because the tenant admin as not granted consent for the application to call the Web API
+                        Console.WriteLine($"Content: {error.Error.Message}");
+                        Console.ResetColor();
+                        return error;
+                    }
+                    catch
+                    {
+                        string content = await response.Content.ReadAsStringAsync();
+                        JObject errorJson = ErrorHandler.CreateNewError("Real bad", content);
+                        return errorJson;
+                    }
                 }
                
             }

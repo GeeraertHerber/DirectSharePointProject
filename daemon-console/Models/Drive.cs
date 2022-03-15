@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace daemon_console.Models
 {
-    internal class Drive
+    public class Drive
     {
         [JsonProperty("@odata.context")]
         public string DataContext { get; set; }

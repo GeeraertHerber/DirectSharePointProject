@@ -23,29 +23,24 @@ namespace daemon_console.Models
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
 
             string url = config.ApiUrl;
-            Console.WriteLine(url);
 
             if (beta == false) 
             {
                 url += "v1.0";
-                Console.WriteLine(url);
             }
             else
             {
                 url += "beta";
-                Console.WriteLine(url);
             }
 
 
             if (webUrl == null)
             {
                 url += $"/sites";
-                Console.WriteLine(url);
             }
             else if (callGraph == true)
             {
                 url += webUrl;
-                Console.WriteLine(url);
             }
 
 
@@ -103,17 +98,17 @@ namespace daemon_console.Models
                 {
                     var httpClient = new HttpClient();
                     var apiCaller = new ProtectedApiCallHelper(httpClient);
-                    Console.WriteLine(webUrl);
-                    Console.WriteLine(url);
                     object ApiResult = await apiCaller.CallWebApiAndProcessResultASync(url, result.AccessToken);
                     Console.WriteLine(ApiResult.GetType());
                     if (ApiResult.GetType() == typeof(byte[]))
                     {
                         //await System.IO.File.WriteAllBytesAsync("hello_world.pdf", (byte[])ApiResult);
                         Console.WriteLine("Converting doc to PDF");
-                        JObject ocrRespons = await apiCaller.CallOCRApiASync("https://westeurope.api.cognitive.microsoft.com/vision/v3.2/read/analyze?language=en", (byte[])ApiResult);
+                        //JObject ocrRespons = await apiCaller.CallOCRApiASync("https://westeurope.api.cognitive.microsoft.com/vision/v3.2/read/analyze?language=en", (byte[])ApiResult);
                         Console.WriteLine("Done");
-                        
+                        var ocrRespons = new JObject();
+
+
                         return ocrRespons;
                     }
                     else if (ApiResult.GetType() == typeof(JObject))

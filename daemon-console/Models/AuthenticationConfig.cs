@@ -68,6 +68,9 @@ namespace daemon_console
         /// <remarks> 
         public string CertificateName { get; set; }
         public string SPTextKey1 { get; set; }
+        public string OCRKey1 { get; set; }
+        public string TextAnEndPoint { get; set; }
+        //public string TextAnEndPoint { get; internal set; }
 
         /// <summary>
         /// Reads the configuration from a json file

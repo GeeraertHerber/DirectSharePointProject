@@ -12,6 +12,7 @@ using System.Security.Cryptography.X509Certificates; //Only import this if you a
 using System.Threading.Tasks;
 using System.IO;
 using daemon_console.Models;
+using daemon_console.Models.ApiCalls;
 
 namespace daemon_console
 {
@@ -31,16 +32,16 @@ namespace daemon_console
                 {
                     //string url = ApiCaller.GetSite();
                     string url = ApiCaller.GetSite("b!8gBvwHeRuECjw4izLaZWvHdN3S3rz75Kvhyrf0kHHx9SiVwv01P_Solc6sU6SAea");
-                    JObject apiResult = ApiManager.RunAsync(url).GetAwaiter().GetResult();
+                    JObject apiResult = (JObject)ApiCalls.GetGraphData(url).GetAwaiter().GetResult();
                     SiteCall siteObject = JsonConvert.DeserializeObject<SiteCall>(apiResult.ToString());
                     //Console.WriteLine(siteObject.value.First().siteId);
                     if (siteObject != null)
                     {
                         foreach (var site in siteObject.Value)
                         {
-                            string siteUrl = ApiCaller.GetDriveBySite(site.siteId);
-                            JObject driveResult = ApiManager.RunAsync(siteUrl).GetAwaiter().GetResult();
-                            Console.WriteLine(site.id);
+                            string siteUrl = ApiCaller.GetDriveBySite(site.SiteId);
+                            JObject driveResult = (JObject)ApiCalls.GetGraphData(siteUrl).GetAwaiter().GetResult();
+                            Console.WriteLine(site.Id);
                             if (driveResult != null)
                             {
                                 //Drive conDrive = (Drive)ApiManager.ConvertToDriveObject(driveResult);

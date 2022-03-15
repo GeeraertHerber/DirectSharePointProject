@@ -10,7 +10,7 @@ namespace daemon_console.Models.OCR
     public class Line
     {
         [JsonPropertyName("boundingBox")]
-        public List<int> BoundingBox { get; set; }
+        public List<float> BoundingBox { get; set; }
 
         [JsonPropertyName("text")]
         public string Text { get; set; }

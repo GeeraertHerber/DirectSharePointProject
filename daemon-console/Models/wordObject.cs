@@ -5,9 +5,9 @@ using System.Text;
 
 namespace daemon_console.Models
 {
-    public class Owner
+    public class WordObject
     {
-        [JsonProperty("group")]
-        public Group Group { get; set; }
+        [JsonProperty("words")]
+        string[] Words { get; set; }
     }
 }
