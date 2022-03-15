@@ -153,20 +153,27 @@ namespace daemon_console.Models.ApiCalls
                     var apiCaller = new ProtectedApiCallHelper(httpClient);
                     object ApiResult = await apiCaller.CallWebApiAndProcessResultASync(webUrl, result.AccessToken);
                     Console.WriteLine(ApiResult.GetType());
+                    if (ApiResult is Byte[])
+                    {
+                        ApiResult = Encoding.Default.GetString((byte[])ApiResult);
+                        Console.WriteLine(ApiResult);
+                    }
                     JObject JsonObject = JObject.Parse(ApiResult.ToString());
 
                     if (JsonObject.ContainsKey("error") && JsonObject != null)
                     {
                         RootError error = JsonConvert.DeserializeObject<RootError>(JsonObject.ToString());
 
+                        JObject errorObject = ErrorHandler.CreateNewError(error.Error.Code.ToString(), error.Error.Message.ToString());
+
                         Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine($"Failed to call the web API: {error.Error.Message}");
+                        //Console.WriteLine($"Failed to call the web API: {error.Error.Message}");
 
                         // Note that if you got reponse.Code == 403 and reponse.content.code == "Authorization_RequestDenied"
                         // this is because the tenant admin as not granted consent for the application to call the Web API
-                        Console.WriteLine($"Content: {error.Error.Message}");
+                        //Console.WriteLine($"Content: {error.Error.Message}");
                         Console.ResetColor();
-                        return null;
+                        return errorObject;
                     }
                     return JsonObject;
 
@@ -267,7 +274,7 @@ namespace daemon_console.Models.ApiCalls
             Console.WriteLine(fileObject.Name);
             string[] fileFormats = new string[]
             {
-                "csv", "doc", "docx", "odp", "ods", "odt", "pot", "potm", "potx", "pps", "ppsx", "ppsxm", "ppt", "pptm", "pptx", "rtf", "xls", "xlsx", "pdf"
+                "csv", "doc", "docx", "odp", "ods", "odt", "pot", "potm", "potx", "pps", "ppsx", "ppsxm", "ppt", "pptm", "pptx", "rtf", "xls", "xlsx"
             };
             string[] nonConvertable = new string[]
             {
@@ -275,7 +282,7 @@ namespace daemon_console.Models.ApiCalls
             };
             if (fileFormats.Any(fileObject.Name.Contains))
             {
-                string fileUrl = $"/drives/{driveObject.Id}/items/{fileObject.Id}?expand=fields"; //
+                //string fileUrl = $"/drives/{driveObject.Id}/items/{fileObject.Id}?expand=fields"; //
                 /*if (fileObject.Name.Contains(".pdf"))*/
                 result = await GetPDF(driveObject, fileObject);
             }
@@ -285,6 +292,19 @@ namespace daemon_console.Models.ApiCalls
             //    /*if (fileObject.Name.Contains(".pdf"))*/
             //    result = await GetPDF(driveObject, fileObject);
             //}
+            else if (fileObject.Name.Contains(".pdf"))
+            {
+                try
+                {
+                    string[] parentPathArray = fileObject.ParentReference.Path.Split(":");
+                    Console.WriteLine(parentPathArray[1]);
+                    result = (JObject)ApiCaller.GetPDFByDriveFile(driveObject.Id, fileObject.Name, parentPathArray[1].ToString());
+                }
+                catch
+                {
+
+                }
+            }
             else
             {
                 result = ErrorHandler.CreateNewError("Real bad", "Not a supported documenttype");
@@ -338,7 +358,7 @@ namespace daemon_console.Models.ApiCalls
 
 
             };
-            string pdfUrl = ApiCaller.GetPDFBy(driveObject.Id, fileObject.Name);
+            string pdfUrl = ApiCaller.GetPDFByDriveFile(driveObject.Id, fileObject.Name);
             Console.WriteLine(pdfUrl);
             
             JObject apiResult = await GetGraphData(pdfUrl);

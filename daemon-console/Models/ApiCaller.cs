@@ -63,11 +63,23 @@ namespace daemon_console.Models
             return url;
         }
 
-        public static string GetPDFBy(string driveId, string fileName)
+        public static string GetPDFByDriveFile(string driveId, string fileName, string parentReference = null)
         {
-            fileName = fileName.Replace(" ", "%");
-            string url = $"/drives/{driveId}/root:/{fileName}:/content?format=pdf";
-            url = UrlCreator(url);
+            //https://graph.microsoft.com/beta/drives/b!vFMTUH3YJ0iHv5pUatRpqXdN3S3rz75Kvhyrf0kHHx9SiVwv01P_Solc6sU6SAea/root:/Open.docx:/content?format=pdf
+            //Call works only in BETA!!! Very important
+
+            fileName = fileName.Replace(" ", "%20");
+            string url; 
+            if (parentReference != null)
+            {
+                 url = $"drives/{driveId}/root:{parentReference}/{fileName}:/content?format=pdf";
+            }
+            else
+            {
+                url = $"drives/{driveId}/root:/{fileName}:/content?format=pdf";
+            }
+           
+            url = UrlCreator(url, true);
             return url;
         }
     }

@@ -29,7 +29,7 @@ namespace daemon_console
                 {
                     foreach (var site in siteObject.Value)
                     {
-                        if (!site.WebUrl.Contains("/personal") && site.Name != null && site.WebUrl.Contains("Retail"))
+                        if (!site.WebUrl.Contains("/personal") && site.Name != null && site.WebUrl.Contains("ProjectFalcon-UXtest"))
                         {
                             Console.WriteLine(site.Name);
                             /*
@@ -45,12 +45,11 @@ namespace daemon_console
                                 Drive driveObject = JsonConvert.DeserializeObject<Drive>(driveResult.ToString());
                                 Console.WriteLine(driveObject.Name);
                                 string dirUrl = ApiCaller.GetFilesByDrive(driveObject.Id);
-                                if (dirUrl != null)
-                                {
-                                    JObject result = await ApiCalls.GetInsideDir(dirUrl, driveObject);
-                                    DirRoot dirObject = JsonConvert.DeserializeObject<DirRoot>(result.ToString());
-                                    Console.WriteLine(dirObject.Files[0].Name.ToString());
-                                }
+                                
+                                JObject result = await ApiCalls.GetInsideDir(dirUrl, driveObject);
+                                DirRoot dirObject = JsonConvert.DeserializeObject<DirRoot>(result.ToString());
+                                Console.WriteLine(dirObject.Files[0].Name.ToString());
+                                
 
                             }
                         }
