@@ -67,6 +67,34 @@ namespace daemon_console.Models.ApiCalls
             //Console.WriteLine(ocrRespons.ToString());
             return ocrRespons;
         }
+        public static async Task<OCRResponse>  GetOCRAsync(string url)
+        {
+            AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
+
+            HttpClient httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.OCRKey1}");
+
+            HttpResponseMessage response = await httpClient.GetAsync(url);
+            Console.WriteLine((int)response.StatusCode);
+            OCRResponse ocrResult = new OCRResponse();
+            //bool running = true; 
+            //while (running)
+            //{
+
+            //}
+            if ((int)response.StatusCode == 429)
+            {
+                int timer = Int32.Parse(response.Headers.GetValues("Retry-After").First()) + 1;
+                Console.WriteLine($"Waiting for {timer} seconds");
+                await Task.Delay(timer);
+                ocrResult = await GetOCRAsync(url);
+                Console.WriteLine($"After waiting for {timer} we got some result");
+            }
+            
+            string stringResponse = await response.Content.ReadAsStringAsync();
+            ocrResult = JsonConvert.DeserializeObject<OCRResponse>(stringResponse);
+            return ocrResult;
+        }
         public static async Task<OCRResponse> PostOCRAsync(byte[] byteArray, string url = "")
         {
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
@@ -77,33 +105,28 @@ namespace daemon_console.Models.ApiCalls
 
             body.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
             HttpResponseMessage response = await httpClient.PostAsync(url, body);
-            List<JObject> ocrResponse = new List<JObject>();
-            OCRResponse ocrObject = new OCRResponse();
-            Console.WriteLine(response.ToString());
+            Console.WriteLine((int)response.StatusCode);
+            OCRResponse ocrResult = new OCRResponse();
             //bool running = true; 
             //while (running)
             //{
                 
             //}
-            if (response.Headers.TryGetValues("Operation-Location", out IEnumerable<string> responseUrl))
+            if ((int)response.StatusCode == 429)
             {
-                //Console.WriteLine(responseUrl.First());
-                bool running = true;
-                while (running)
-
-                {
-                    ocrResponse.Add(await CompleteCallAsync(responseUrl.First(), config.OCRKey1));
-                    if (!(ocrResponse[^1].GetValue("status").ToString() == "running"))
-                    {
-                       
-                        break;
-                    }
-                    await Task.Delay(2000);
-                }
-                ocrObject = JsonConvert.DeserializeObject< OCRResponse>(ocrResponse[^1].ToString());
+                int timer = Int32.Parse(response.Headers.GetValues("Retry-After").First()) +1;
+                Console.WriteLine($"Waiting for {timer} seconds");
+                await Task.Delay(timer);
+                ocrResult = await PostOCRAsync(byteArray, url);
+                Console.WriteLine($"After waiting for {timer} we got some result");
             }
-
-            return ocrObject;
+            if ((int )response.StatusCode == 202)
+            {
+                string responseUrl = response.Headers.GetValues("Operation-Location").First();
+                ocrResult = await GetOCRAsync(responseUrl);
+            }
+            
+            return ocrResult;
             //httpClient..Add("Content-Type", "application/octet-stream");
         }
         public static async Task<object> GetGraphData(string webUrl = null)
@@ -430,7 +453,7 @@ namespace daemon_console.Models.ApiCalls
         }
         private static async Task<JObject> GetAnalytics(List<Document> documentList)
         {
-            AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
+            //AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
             Console.WriteLine(documentList.Count);
             HttpResponseMessage httpResponse = await ApiCalls.PostAnalyticsText(documentList);
             var httpClient = new HttpClient();
