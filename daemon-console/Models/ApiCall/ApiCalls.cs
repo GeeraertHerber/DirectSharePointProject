@@ -73,7 +73,12 @@ namespace daemon_console.Models.ApiCalls
             HttpResponseMessage response = await httpClient.PostAsync(url, body);
             List<JObject> ocrResponse = new List<JObject>();
             OCRResponse ocrObject = new OCRResponse();
-
+            Console.WriteLine(response.ToString());
+            //bool running = true; 
+            //while (running)
+            //{
+                
+            //}
             if (response.Headers.TryGetValues("Operation-Location", out IEnumerable<string> responseUrl))
             {
                 //Console.WriteLine(responseUrl.First());
@@ -191,6 +196,7 @@ namespace daemon_console.Models.ApiCalls
         }
         public static async Task<HttpResponseMessage> PostAnalyticsText(List<Document> documentsList)
         {
+            Console.WriteLine("Starting textanalytics");
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
 
             string endpoint = config.TextAnEndPoint;
@@ -421,28 +427,12 @@ namespace daemon_console.Models.ApiCalls
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
             Console.WriteLine(documentList.Count);
             HttpResponseMessage httpResponse = await ApiCalls.PostAnalyticsText(documentList);
-            List<JObject> analResponse = new List<JObject>();
+            JObject analyticsResult = await ProtectedApiCallHelper.CallAnalyticsResult(httpResponse.Headers.GetValues("operation-location").First().ToString());
             AnalyticsRoot analObject = new AnalyticsRoot();
             //Console.WriteLine(httpResponse.StatusCode);
-            if (httpResponse.Headers.TryGetValues("operation-location", out IEnumerable<string> responseUrl))
-            {
-                //Console.WriteLine(responseUrl.First());
-                bool running = true;
-                while (running)
-
-                {
-                    analResponse.Add(await CompleteCallAsync(responseUrl.First(), config.SPTextKey2));
-                    if (!(analResponse[^1].GetValue("status").ToString() == "running"))
-                    {
-
-                        break;
-                    }
-                    await Task.Delay(2000);
-                }
-                analObject = JsonConvert.DeserializeObject<AnalyticsRoot>(analResponse[^1].ToString());
-            }
-            JObject returnObject = JObject.FromObject(analObject);
             
+            JObject returnObject = JObject.FromObject(analObject);
+
             //Console.WriteLine(analyticsObject.ToString());
             return returnObject;
         }

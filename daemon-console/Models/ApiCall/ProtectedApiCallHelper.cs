@@ -41,99 +41,6 @@ namespace daemon_console
         /// <param name="accessToken">Access token used as a bearer security token to call the web API</param>
         /// <param name="processResult">Callback used to process the result of the call to the web API</param>
         /// 
-
-        public async Task<JObject> PostAnalyticsText(string[] content)
-        {
-            AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
-
-            string endpoint = config.TextAnEndPoint;
-            string url = $"{endpoint}text/analytics/v3.2-preview.2/analyze";
-
-            HttpClient httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.OCRKey1}");
-            string stringedContent = string.Join("", content);
-            var analyticsObject = new AnalyticsRoot
-            {
-                DisplayName = "Extracting sentiment",
-                AnalysisInput = {
-                    Documents =
-                    {
-                        new Document
-                        {
-                            Id = "1",
-                            Language = "en",
-                            Text = stringedContent
-                        }
-                    }
-                },
-                Tasks = {
-                    ExtractiveSummarizationTasks =
-                    {
-                        new ExtractiveSummarizationTask
-                        {
-                            Parameters = {
-                                ModelVersion = "latest"
-                            }
-                        }
-                    }
-                }
-
-            };
-            Console.WriteLine(stringedContent);
-            string jsonString = JsonConvert.SerializeObject(analyticsObject);
-            //body.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-            HttpContent httpContent = new StringContent(jsonString);
-            HttpResponseMessage response = await httpClient.PostAsync(url, httpContent);
-            Console.WriteLine(response.ToString());
-            JObject json = JObject.Parse(jsonString);
-            return json;
-        }
-        public async Task<JObject> PostOCRAsync(string url, byte[] byteArray)
-        {
-            AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
-
-            HttpClient httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.OCRKey1}");
-            var body = new ByteArrayContent(byteArray);
-
-            body.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-            HttpResponseMessage response = await httpClient.PostAsync(url, body);
-            List<JObject> ocrResponse = new List<JObject>();
-            JObject ocrObject = new JObject();
-
-            if ( response.Headers.TryGetValues("Operation-Location", out IEnumerable<string> responseUrl))
-            {
-                //Console.WriteLine(responseUrl.First());
-                bool running = true;
-                while (running)
-
-                {
-                    ocrResponse.Add(await CallCompletedOCRASync(responseUrl.First(), config));
-                    if (!(ocrResponse[^1].GetValue("status").ToString() == "running"))
-                    {
-                        break;
-                    }
-                    await Task.Delay(2000);
-                }
-                ocrObject = (JObject)JsonConvert.DeserializeObject(ocrResponse[^1].ToString());
-            }
-            
-            return ocrObject;
-                //httpClient..Add("Content-Type", "application/octet-stream");
-        }
-
-        public async Task<JObject> CallCompletedOCRASync(string responseurl, AuthenticationConfig config)
-        {
-            HttpClient httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.OCRKey1}");
-            var respons = await httpClient.GetAsync(responseurl);
-            string json = await respons.Content.ReadAsStringAsync();
-            
-            JObject ocrRespons = JsonConvert.DeserializeObject(json) as JObject;
-            //Console.WriteLine(ocrRespons.ToString());
-            return ocrRespons;
-        }
-
         public async Task<object> CallWebApiAndProcessResultASync(string webApiUrl, string accessToken)
         {
             if (!string.IsNullOrEmpty(accessToken))
@@ -214,5 +121,38 @@ namespace daemon_console
                 return null;
             }
         }
+
+        public async Task<JObject> CallAnalyticsResult(string responseUrl)
+        {
+            AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
+            HttpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.SPTextKey2}");
+
+            HttpResponseMessage response = await HttpClient.GetAsync(responseUrl);
+            string responseContent = await response.Content.ReadAsStringAsync();
+            AnalyticsRoot analyticsObject = JsonConvert.DeserializeObject<AnalyticsRoot>(responseContent);
+            JObject returnObject = (JObject)JsonConvert.DeserializeObject(responseContent);
+            int errorCounter = 0;
+            if (response.IsSuccessStatusCode)
+            {
+                while (analyticsObject.Tasks.Completed != analyticsObject.Tasks.Total && errorCounter > 10)
+                {
+                    await Task.Delay(1000);
+                    response = await HttpClient.GetAsync(responseUrl);
+                    responseContent = await response.Content.ReadAsStringAsync();
+                    analyticsObject = JsonConvert.DeserializeObject<AnalyticsRoot>(responseContent);
+                    returnObject = (JObject)JsonConvert.DeserializeObject(responseContent);
+                    errorCounter++;
+                    Console.WriteLine(errorCounter);
+
+                }
+            }
+            else
+            {
+                returnObject = ErrorHandler.CreateNewError(response.StatusCode.ToString(), "Negative response code returned");
+            }
+            
+            return returnObject;
+        }
+
     }
 }
