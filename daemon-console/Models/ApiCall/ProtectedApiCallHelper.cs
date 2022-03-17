@@ -138,11 +138,15 @@ namespace daemon_console
                 {
                     await Task.Delay(1000);
                     response = await HttpClient.GetAsync(responseUrl);
-                    responseContent = await response.Content.ReadAsStringAsync();
-                    analyticsObject = JsonConvert.DeserializeObject<AnalyticsRoot>(responseContent);
-                    returnObject = (JObject)JsonConvert.DeserializeObject(responseContent);
-                    errorCounter++;
-                    Console.WriteLine(errorCounter);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        responseContent = await response.Content.ReadAsStringAsync();
+                        analyticsObject = JsonConvert.DeserializeObject<AnalyticsRoot>(responseContent);
+                        returnObject = (JObject)JsonConvert.DeserializeObject(responseContent);
+                        errorCounter++;
+                        Console.WriteLine(errorCounter);
+                    }
+                    
 
                 }
             }

@@ -56,8 +56,14 @@ namespace daemon_console.Models.ApiCalls
             httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{key}");
             var respons = await httpClient.GetAsync(responseurl);
             string json = await respons.Content.ReadAsStringAsync();
-
-            JObject ocrRespons = JsonConvert.DeserializeObject(json) as JObject;
+            JObject ocrRespons = new JObject();
+            if (respons.StatusCode.ToString() == "429")
+            {
+                string retryAfter = respons.Headers.GetValues("Retry-After").First();
+                await Task.Delay(Int16.Parse(retryAfter));
+                ocrRespons = await CompleteCallAsync(responseurl, key);
+            }
+            ocrRespons = JsonConvert.DeserializeObject(json) as JObject;
             //Console.WriteLine(ocrRespons.ToString());
             return ocrRespons;
         }
@@ -349,7 +355,7 @@ namespace daemon_console.Models.ApiCalls
                         Console.WriteLine(result.ToString());
                     }
                 }
-                if (documentList.Count == 20)
+                if (documentList.Count == 5)
                 {
                    
                     JObject analyticsResponse = await GetAnalytics(documentList);
@@ -427,14 +433,11 @@ namespace daemon_console.Models.ApiCalls
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
             Console.WriteLine(documentList.Count);
             HttpResponseMessage httpResponse = await ApiCalls.PostAnalyticsText(documentList);
-            JObject analyticsResult = await ProtectedApiCallHelper.CallAnalyticsResult(httpResponse.Headers.GetValues("operation-location").First().ToString());
-            AnalyticsRoot analObject = new AnalyticsRoot();
-            //Console.WriteLine(httpResponse.StatusCode);
-            
-            JObject returnObject = JObject.FromObject(analObject);
+            var httpClient = new HttpClient();
+            var apiCaller = new ProtectedApiCallHelper(httpClient);
+            JObject analyticsResult = await apiCaller.CallAnalyticsResult(httpResponse.Headers.GetValues("operation-location").First().ToString());
 
-            //Console.WriteLine(analyticsObject.ToString());
-            return returnObject;
+            return analyticsResult;
         }
         
 
