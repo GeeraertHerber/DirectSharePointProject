@@ -16,15 +16,13 @@ namespace daemon_console
     {
         public static void MainTester()
         {
-
+            var watch = new System.Diagnostics.Stopwatch();
+            watch.Start();
             try
             {
-                //string url = ApiCaller.GetSite();
                 string url = ApiCaller.GetSite("?search=*");
                 object apiResult = ApiCalls.GetGraphData(url).GetAwaiter().GetResult();
-                //Console.WriteLine(apiResult.ToString());    
                 SiteCall siteObject = JsonConvert.DeserializeObject<SiteCall>(apiResult.ToString());
-                //Console.WriteLine(siteObject.value.First().siteId);
                 if (siteObject != null)
                 {
                     foreach (var site in siteObject.Value)
@@ -32,15 +30,8 @@ namespace daemon_console
                         if (!site.WebUrl.Contains("/personal") && site.Name != null && site.WebUrl.Contains("Retail"))
                         {
                             Console.WriteLine(site.Name);
-                            /*
-                            url = $"sites/{site.siteId}/columns";
-                            JObject result = ApiManager.RunAsync(url).GetAwaiter().GetResult();
-                            Console.WriteLine(result.ToString());*/
                             string siteUrl = ApiCaller.GetDriveBySite(site.SiteId);
                             object driveResult = ApiCalls.GetGraphData(siteUrl).GetAwaiter().GetResult();
-
-                            //Console.WriteLine(site.Name);
-                            //Console.WriteLine(driveResult.ToString());  
                             if (driveResult != null)
                             {
                                 Drive driveObject = JsonConvert.DeserializeObject<Drive>(driveResult.ToString());
@@ -49,12 +40,11 @@ namespace daemon_console
 
                                 ApiCalls.GetInsideDir(dirUrl, driveObject);
                                 Console.WriteLine("Scanned a site");
-
-
                             }
                         }
                     }
                 }
+               
             }
             catch (Exception ex)
             {
@@ -62,6 +52,9 @@ namespace daemon_console
                 Console.WriteLine(ex.Message);
                 Console.ResetColor();
             }
+
+            watch.Stop();
+            Console.WriteLine($"Program finised in {watch.ElapsedMilliseconds/100}s ");
 
             Console.WriteLine("Press any key to exit");
             Console.ReadKey();

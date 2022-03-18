@@ -336,6 +336,7 @@ namespace daemon_console.Models.ApiCalls
         //        return standardError;
         //    }
         //}
+
         private static async Task<object> GetFile(Drive driveObject, FileSP fileObject)
         {
             object result = new object();
@@ -385,7 +386,7 @@ namespace daemon_console.Models.ApiCalls
                     //Console.WriteLine(dirContent.Folder.ChildCount);
                     //Console.WriteLine(dirContent.WebUrl);
                     //string dirUrl = ApiCaller.GetFilesByDrive(driveObject.Id, "/schematics");
-                    //result = await GetInsideDir(dirUrl, driveObject);
+                    //GetInsideDir(dirUrl, driveObject);
                     Console.WriteLine(dirContent.Name);
                 }
             
@@ -416,6 +417,7 @@ namespace daemon_console.Models.ApiCalls
                 {
                    
                     JObject analyticsResponse = await GetAnalytics(documentList);
+
                     Console.WriteLine(analyticsResponse);
                     documentList.Clear();
                 }
