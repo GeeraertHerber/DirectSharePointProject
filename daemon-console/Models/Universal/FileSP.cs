@@ -34,7 +34,7 @@ namespace daemon_console.Models
         [JsonProperty("fileSystemInfo")]
         public FileSystemInfo FileSystemInfo { get; set; }
         [JsonProperty("folder")]
-        public Folder Folder { get; set; }
+        public Folder Folder { get; set; } = new Folder();
         [JsonProperty("contents")]
         public byte[] Contents { get; set; }
     }

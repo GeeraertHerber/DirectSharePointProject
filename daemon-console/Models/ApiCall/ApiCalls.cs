@@ -290,16 +290,13 @@ namespace daemon_console.Models.ApiCalls
                     ExtractiveSummarizationTasks = extractTask
                 }
             };
-            string jsonString = JsonConvert.SerializeObject(analyticsObject, Formatting.None, 
-                new JsonSerializerSettings
-            {
-                NullValueHandling = NullValueHandling.Ignore
-            });
+            string jsonString = JsonConvert.SerializeObject(analyticsObject, Formatting.None, new JsonSerializerSettings{NullValueHandling = NullValueHandling.Ignore});
             //body.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            Console.WriteLine("We are here");
             HttpContent httpContent = new StringContent(jsonString);
             httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             HttpResponseMessage response = await httpClient.PostAsync(url, httpContent);
-            Console.WriteLine(response.ToString());
+            //Console.WriteLine(response.ToString());
             return response;
         }
         //public static async Task<object> GetWebAsync(string webApiUrl, string accessToken, HttpClient httpClient)
@@ -381,16 +378,17 @@ namespace daemon_console.Models.ApiCalls
             List<Document> documentList = new List<Document>();
             foreach (var dirContent in dirObject.Files)
             {
-                if (dirContent.Folder != null)
+                if (dirContent.Folder.ChildCount != 0)
                 {
                     //Console.WriteLine(dirContent.Folder.ChildCount);
                     //Console.WriteLine(dirContent.WebUrl);
-                    //string dirUrl = ApiCaller.GetFilesByDrive(driveObject.Id, "/schematics");
+                    Console.WriteLine("Parent path: ", dirContent.ParentReference.ToString());
+                    //string dirUrl = ApiCaller.GetFilesByDrive(driveObject.Id, $"/");
                     //GetInsideDir(dirUrl, driveObject);
-                    Console.WriteLine(dirContent.Name);
+                    //Console.WriteLine(dirContent.);
                 }
             
-                else if (dirContent.Folder == null)
+                else 
                 {
                     /* Console.WriteLine(dirContent.name);
                      Console.WriteLine(dirContent.eTag);*/
@@ -409,20 +407,27 @@ namespace daemon_console.Models.ApiCalls
                         globalCounter++;
                         Console.WriteLine($"Global documentcounter {globalCounter}");
                         documentList.Add(document);
-                        Console.WriteLine(result.ToString());
+
                     }
                 }
-                Console.WriteLine(documentList.Count);
+                //Console.WriteLine(documentList.Count);
                 if (documentList.Count > 5)
                 {
                    
                     JObject analyticsResponse = await GetAnalytics(documentList);
 
-                    Console.WriteLine(analyticsResponse);
+                    Console.WriteLine(analyticsResponse.ToString());
                     documentList.Clear();
                 }
 
 
+            }
+            if (documentList.Count != 0)
+            {
+                JObject analyticsResponse = await GetAnalytics(documentList);
+
+                Console.WriteLine(analyticsResponse.ToString());
+                documentList.Clear();
             }
             Console.WriteLine($"Documents scanned: {globalCounter}");
         }
@@ -464,7 +469,7 @@ namespace daemon_console.Models.ApiCalls
                 {
                     foreach (Line line in result.Lines)
                     {
-                        Console.WriteLine(line.Text);
+                        //Console.WriteLine(line.Text);
                         foreach (var word in line.Text.Split(" "))
                         {
                             wordList.Add(word);
@@ -491,7 +496,6 @@ namespace daemon_console.Models.ApiCalls
         private static async Task<JObject> GetAnalytics(List<Document> documentList)
         {
             //AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
-            Console.WriteLine(documentList.Count);
             HttpResponseMessage httpResponse = await ApiCalls.PostAnalyticsText(documentList);
             var httpClient = new HttpClient();
             var apiCaller = new ProtectedApiCallHelper(httpClient);
