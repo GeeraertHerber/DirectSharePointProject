@@ -122,33 +122,25 @@ namespace daemon_console
             }
         }
 
-        public async Task<JObject> CallAnalyticsResult(string responseUrl)
+        public async Task<JObject> CallAnalyticsResult(string responseUrl, int timer = 0)
         {
+            await Task.Delay(timer * 1000);
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
             HttpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.SPTextKey2}");
-
+            //HttpResponseMessage response = new HttpResponseMessage();
             HttpResponseMessage response = await HttpClient.GetAsync(responseUrl);
-            string responseContent = await response.Content.ReadAsStringAsync();
-            AnalyticsRoot analyticsObject = JsonConvert.DeserializeObject<AnalyticsRoot>(responseContent);
-            JObject returnObject = (JObject)JsonConvert.DeserializeObject(responseContent);
-            int errorCounter = 0;
+            JObject returnObject = new JObject();
+            //JObject returnObject = (JObject)JsonConvert.DeserializeObject(responseContent);
             if (response.IsSuccessStatusCode)
             {
-                while (analyticsObject.Tasks.Completed != analyticsObject.Tasks.Total && errorCounter > 10)
+                string responseContent = await response.Content.ReadAsStringAsync();
+                AnalyticsRoot analyticsObject = JsonConvert.DeserializeObject<AnalyticsRoot>(responseContent);
+                if (analyticsObject.Status.ToString() == "running")
                 {
-                    await Task.Delay(1000);
-                    response = await HttpClient.GetAsync(responseUrl);
-                    if (response.IsSuccessStatusCode)
-                    {
-                        responseContent = await response.Content.ReadAsStringAsync();
-                        analyticsObject = JsonConvert.DeserializeObject<AnalyticsRoot>(responseContent);
-                        returnObject = (JObject)JsonConvert.DeserializeObject(responseContent);
-                        errorCounter++;
-                        Console.WriteLine(errorCounter);
-                    }
-                    
+                    returnObject = await CallAnalyticsResult(responseUrl, 2);
 
                 }
+                return returnObject;
             }
             else
             {
