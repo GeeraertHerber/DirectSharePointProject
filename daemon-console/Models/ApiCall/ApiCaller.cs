@@ -82,7 +82,7 @@ namespace daemon_console.Models
             url = UrlCreator(url, true);
             return url;
         }
-        public static string GetPDF(string driveId, string itemId, string parentReference = null)
+        public static string GetPDF(string driveId, string itemId)
         {
             //fileName = fileName.Replace(" ", "%20");
             string url;

@@ -48,7 +48,6 @@ namespace daemon_console.Models.ApiCalls
             defaultCertificateLoader.LoadIfNeeded(certificateDescription);
             return certificateDescription.Certificate;
         }
-        
         public static async Task<JObject> CompleteCallAsync(string responseurl, string key)
         {
           
@@ -56,12 +55,12 @@ namespace daemon_console.Models.ApiCalls
             httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{key}");
             var respons = await httpClient.GetAsync(responseurl);
             string json = await respons.Content.ReadAsStringAsync();
-            JObject ocrRespons = new JObject();
+            JObject ocrRespons;
             if (respons.StatusCode.ToString() == "429")
             {
                 string retryAfter = respons.Headers.GetValues("Retry-After").First();
                 await Task.Delay(Int16.Parse(retryAfter));
-                ocrRespons = await CompleteCallAsync(responseurl, key);
+                //_ocrRespons = await CompleteCallAsync(responseurl, key);
             }
             ocrRespons = JsonConvert.DeserializeObject(json) as JObject;
             //Console.WriteLine(ocrRespons.ToString());
@@ -75,8 +74,8 @@ namespace daemon_console.Models.ApiCalls
             httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.OCRKey1}");
 
             HttpResponseMessage response = await httpClient.GetAsync(url);
-            Console.WriteLine((int)response.StatusCode);
-            OCRResponse ocrResult = new OCRResponse();
+            //Console.WriteLine((int)response.StatusCode);
+            OCRResponse ocrResult;
             //bool running = true; 
             //while (running)
             //{
@@ -90,9 +89,16 @@ namespace daemon_console.Models.ApiCalls
                 ocrResult = await GetOCRAsync(url);
                 Console.WriteLine($"After waiting for {timer} we got some result");
             }
+            else if ((int)response.StatusCode == 200)
+            {
+                string stringResponse = await response.Content.ReadAsStringAsync();
+                ocrResult = JsonConvert.DeserializeObject<OCRResponse>(stringResponse);
+            }
+            else
+            {
+                ocrResult = null;
+            }
             
-            string stringResponse = await response.Content.ReadAsStringAsync();
-            ocrResult = JsonConvert.DeserializeObject<OCRResponse>(stringResponse);
             return ocrResult;
         }
         public static async Task<OCRResponse> PostOCRAsync(byte[] byteArray, string url = "")
@@ -120,12 +126,17 @@ namespace daemon_console.Models.ApiCalls
                 ocrResult = await PostOCRAsync(byteArray, url);
                 Console.WriteLine($"After waiting for {timer} we got some result");
             }
+            string responseUrl;
             if ((int )response.StatusCode == 202)
             {
-                string responseUrl = response.Headers.GetValues("Operation-Location").First();
+                responseUrl = response.Headers.GetValues("Operation-Location").First();
                 ocrResult = await GetOCRAsync(responseUrl);
             }
-            
+
+            if (ocrResult.Status == null)
+            {
+                Console.WriteLine(response.Headers.ToString());
+            }
             return ocrResult;
             //httpClient..Add("Content-Type", "application/octet-stream");
         }
@@ -443,7 +454,7 @@ namespace daemon_console.Models.ApiCalls
                 //JObject wordResult = JObject.Parse(stringedWordList);
                 return words;
             }
-            catch (Exception ex)
+            catch
             {
                 return new string[0];
             }
