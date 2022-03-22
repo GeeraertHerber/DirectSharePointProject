@@ -352,3 +352,6 @@ MigrationBackup/
 # Dataset ignore
 SharePointAI/datasetO4B/*.source
 SharePointAI/datasetO4B/*.target
+
+SharePointAI/datasetO4B/*.DS_Store
+SharePointAI/datasetO4B/*.bib
