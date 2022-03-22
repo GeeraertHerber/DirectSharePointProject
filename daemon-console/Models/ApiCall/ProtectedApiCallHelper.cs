@@ -99,7 +99,7 @@ namespace daemon_console
 
                         Console.ForegroundColor = ConsoleColor.Red;
                         Console.WriteLine($"Failed to call the web API: {error.Error.Message}");
-                    
+                        Console.WriteLine($"Web url: {webApiUrl}");
 
                         // Note that if you got reponse.Code == 403 and reponse.content.code == "Authorization_RequestDenied"
                         // this is because the tenant admin as not granted consent for the application to call the Web API

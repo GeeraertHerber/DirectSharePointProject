@@ -9,12 +9,15 @@ using daemon_console.Models.ApiCalls;
 using System.Linq;
 using daemon_console.Models.Errors;
 using System.Threading.Tasks;
+using daemon_console.Models.Analytics;
+using System.Text;
+using System.IO;
 
 namespace daemon_console
 {
     class OtherMain
     {
-        public static void MainTester()
+        public static async Task MainTesterAsync()
         {
             var watch = new System.Diagnostics.Stopwatch();
             watch.Start();
@@ -27,18 +30,31 @@ namespace daemon_console
                 {
                     foreach (var site in siteObject.Value)
                     {
-                        if (!site.WebUrl.Contains("/personal") && site.Name != null && site.WebUrl.Contains("Retail"))
+                        if (!site.WebUrl.Contains("/personal") && site.Id != null)
                         {
                             Console.WriteLine(site.Name);
                             string siteUrl = ApiCaller.GetDriveBySite(site.SiteId);
                             object driveResult = ApiCalls.GetGraphData(siteUrl).GetAwaiter().GetResult();
-                            if (driveResult != null)
+                            if (driveResult.ToString().Contains("@odata.context")) 
+
                             {
                                 Drive driveObject = JsonConvert.DeserializeObject<Drive>(driveResult.ToString());
                                 Console.WriteLine(driveObject.Name);
-                                string dirUrl = ApiCaller.GetFilesByDrive(driveObject.Id);
+                                var fileUrl = ApiCaller.GetFilesByDrive(driveObject.Id);
+                                if (driveObject.DataContext == null)
+                                {
+                                    Console.WriteLine("Stop 3");
+                                }
+                                List<Document> documentList = await ApiCalls.GetInsideDir(fileUrl.Item1, driveObject, fileUrl.Item2);
+                                using StreamWriter file = new StreamWriter("textData.csv", append: true);
 
-                                ApiCalls.GetInsideDir(dirUrl, driveObject);
+                                foreach (var doc in documentList)
+                                {
+                                    
+                                    string newLine = $"{doc.Text}, {site.Name}";
+                                    await file.WriteLineAsync(newLine);
+                                }
+                                //File.WriteAllText('C:\\textdata.csv', csv.ToString());
                                 Console.WriteLine("Scanned a site");
                             }
                         }
@@ -54,7 +70,7 @@ namespace daemon_console
             }
 
             watch.Stop();
-            Console.WriteLine($"Program finised in {watch.ElapsedMilliseconds/100}s ");
+            Console.WriteLine($"Program finised in {watch.ElapsedMilliseconds/1000}s ");
 
             Console.WriteLine("Press any key to exit");
             Console.ReadKey();

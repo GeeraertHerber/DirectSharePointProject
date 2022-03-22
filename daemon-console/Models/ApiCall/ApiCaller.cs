@@ -46,21 +46,26 @@ namespace daemon_console.Models
         }
 
 
-        public static string GetFilesByDrive(string driveId, string pathRelative = "")
+        public static Tuple<string, string> GetFilesByDrive(string driveId, string dirName = "", string folderPath = "")
         {
             string url;
-            if (pathRelative == "")
+            if (dirName == "")
             {
                 url = UrlCreator($"drives/{driveId}/root/children");
                 
             }
+            else if (folderPath == "")
+            {
+                url = UrlCreator($"drives/{driveId}/root:/{dirName}:/children");
+            }
             else
             {
-                url = UrlCreator($"drives/{driveId}/root:{pathRelative}:/children");
+                folderPath += $"/{dirName}";
+                url = UrlCreator($"drives/{driveId}/root:/{folderPath}:/children");
             }
            
             Console.WriteLine(url);
-            return url;
+            return Tuple.Create(url, folderPath);
         }
 
         public static string GetConvertFilePDF(string driveId, string fileName, string parentReference = null)

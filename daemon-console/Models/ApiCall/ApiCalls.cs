@@ -369,67 +369,90 @@ namespace daemon_console.Models.ApiCalls
             return result;
 
         }
-        public static async void GetInsideDir(string url, Drive driveObject)
+        public static async Task<List<Document>> GetInsideDir(string url, Drive driveObject, string folderPath = "")
         {
             JObject result = new JObject();
             int globalCounter = 0;
-            object apiResult = await GetGraphData(url);
+            object apiResult = GetGraphData(url).GetAwaiter().GetResult(); ;
             DirRoot dirObject = JsonConvert.DeserializeObject<DirRoot>(apiResult.ToString());
             List<Document> documentList = new List<Document>();
-            foreach (var dirContent in dirObject.Files)
+            if (driveObject.DataContext == null)
             {
-                if (dirContent.Folder.ChildCount != 0)
+                Console.WriteLine("STOP");
+            }
+            if (dirObject.DataContext != null)
+            {
+                foreach (var dirContent in dirObject.Files)
                 {
-                    //Console.WriteLine(dirContent.Folder.ChildCount);
-                    //Console.WriteLine(dirContent.WebUrl);
-                    Console.WriteLine("Parent path: ", dirContent.ParentReference.ToString());
-                    //string dirUrl = ApiCaller.GetFilesByDrive(driveObject.Id, $"/");
-                    //GetInsideDir(dirUrl, driveObject);
-                    //Console.WriteLine(dirContent.);
-                }
-            
-                else 
-                {
-                    /* Console.WriteLine(dirContent.name);
-                     Console.WriteLine(dirContent.eTag);*/
-                    object fileResult = await GetFile(driveObject, dirContent);
-                    if (fileResult is byte[] fileByteArray)
+                    if (dirContent.Folder.ChildCount != 0)
                     {
-                        OCRResponse ocrResult = await PostOCRAsync(fileByteArray, "https://ocrdirecttester.cognitiveservices.azure.com/vision/v3.2/read/analyze?language=en");
 
-                        string[] wordArray = ExtractWords(ocrResult);
-                        Document document = new Document
+                        Console.WriteLine(dirContent.Folder.ChildCount);
+                        //Console.WriteLine(dirContent.WebUrl);
+                        Console.WriteLine("Parent path: ", dirContent.ParentReference.ToString());
+                        var dirUrl = ApiCaller.GetFilesByDrive(driveObject.Id, dirContent.Name, folderPath);
+                        Console.WriteLine(dirUrl);
+                        if (driveObject.DataContext == null)
                         {
-                            Id = (documentList.Count() + 1).ToString(),
-                            Language = "en",
-                            Text = String.Join("", wordArray)
-                        };
-                        globalCounter++;
-                        Console.WriteLine($"Global documentcounter {globalCounter}");
-                        documentList.Add(document);
-
+                            Console.WriteLine("STOP 2");
+                        }
+                        List<Document> returnedDocumentList = await GetInsideDir(dirUrl.Item1, driveObject, dirUrl.Item2);
+                        foreach (var doc in returnedDocumentList)
+                        {
+                            documentList.Add(doc);
+                        }
+                        //Console.WriteLine(dirContent.);
                     }
-                }
-                //Console.WriteLine(documentList.Count);
-                if (documentList.Count > 5)
-                {
-                   
-                    JObject analyticsResponse = await GetAnalytics(documentList);
 
-                    Console.WriteLine(analyticsResponse.ToString());
-                    documentList.Clear();
-                }
+                    else
+                    {
+                        /* Console.WriteLine(dirContent.name);
+                         Console.WriteLine(dirContent.eTag);*/
+                        object fileResult = await GetFile(driveObject, dirContent);
 
+                        if (fileResult is byte[] fileByteArray)
+                        {
+                            OCRResponse ocrResult = await PostOCRAsync(fileByteArray, "https://ocrdirecttester.cognitiveservices.azure.com/vision/v3.2/read/analyze?language=en");
 
+                            string[] wordArray = ExtractWords(ocrResult);
+                            Document document = new Document
+                            {
+                                Id = (documentList.Count() + 1).ToString(),
+                                Language = "en",
+                                Text = String.Join("", wordArray)
+                            };
+                            globalCounter++;
+                            Console.WriteLine($"Global documentcounter {globalCounter}");
+                            documentList.Add(document);
+
+                        }
+                        else if (fileResult is RootError)
+                        {
+                            //Console.WriteLine(fileResult.ToString());
+                           
+                        }
+                    }
+                    //Console.WriteLine(documentList.Count);
+                    if (documentList.Count > 5)
+                    {
+
+                        JObject analyticsResponse = await GetAnalytics(documentList);
+
+                        Console.WriteLine(analyticsResponse.ToString());
+                        documentList.Clear();
+                    }
+                }          
+            
             }
-            if (documentList.Count != 0)
-            {
-                JObject analyticsResponse = await GetAnalytics(documentList);
+            return documentList;
+            //if (documentList.Count != 0)
+            //{
+            //    JObject analyticsResponse = await GetAnalytics(documentList);
 
-                Console.WriteLine(analyticsResponse.ToString());
-                documentList.Clear();
-            }
-            Console.WriteLine($"Documents scanned: {globalCounter}");
+            //    Console.WriteLine(analyticsResponse.ToString());
+            //    documentList.Clear();
+            //}
+            //Console.WriteLine($"Documents scanned: {globalCounter}");
         }
 
         private static readonly Random random = new Random();
@@ -445,8 +468,11 @@ namespace daemon_console.Models.ApiCalls
             byte[] pdfFile = (byte[])await GetGraphData(url);
             return pdfFile;
         }
-        private static async Task<byte[]> ConvertPDF(Drive driveObject, FileSP fileObject)
+        private static async Task<object> ConvertPDF(Drive driveObject, FileSP fileObject)
         {
+            try
+            {
+
             string[] parentPathArray = fileObject.ParentReference.Path.Split(":");
             Console.WriteLine(parentPathArray[1]);
             //string pdfUrl = $"/drives/{driveObject.Id}/root:/{fileObject.Name.Replace(" ", "%")}:/content?format=pdf";
@@ -457,6 +483,14 @@ namespace daemon_console.Models.ApiCalls
             byte[] apiResult = (byte[]) await GetGraphData(pdfUrl);
             //byte[] resultObject = JsonConvert.DeserializeObject<byte[]>(apiResult);
             return apiResult;
+
+            }
+            catch
+            {
+                JObject error = ErrorHandler.CreateNewError("Errorcode ", "Something went wrong");
+                return error;
+            }
+
 
         }
         private static string[] ExtractWords(OCRResponse ocrObject)
