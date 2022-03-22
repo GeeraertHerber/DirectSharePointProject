@@ -356,3 +356,7 @@ MigrationBackup/
 #SharePointAI/datasetO4B/*.DS_Store
 #SharePointAI/datasetO4B/*.bib
 SharePointAI/datasetO4B/*
+
+SharePointAI/envSharePoint/*
+SharePointAI/archive/*
+SharePointAI/text_classification/*
