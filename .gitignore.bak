@@ -350,8 +350,8 @@ MigrationBackup/
 .ionide/
 
 # Dataset ignore
-#SharePointAI/datasetO4B/*.source
-#SharePointAI/datasetO4B/*.target
+SharePointAI/datasetO4B/*.source
+SharePointAI/datasetO4B/*.target
 
-#SharePointAI/datasetO4B/*.DS_Store
-#SharePointAI/datasetO4B/*.bib
+SharePointAI/datasetO4B/*.DS_Store
+SharePointAI/datasetO4B/*.bib
