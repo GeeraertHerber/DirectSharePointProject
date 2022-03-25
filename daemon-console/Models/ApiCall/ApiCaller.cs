@@ -74,9 +74,11 @@ namespace daemon_console.Models
             //Call works only in BETA!!! Very important
 
             fileName = fileName.Replace(" ", "%20");
+            
             string url; 
             if (parentReference != null)
             {
+                parentReference = parentReference.Replace(" ", "%20");
                  url = $"drives/{driveId}/root:{parentReference}/{fileName}:/content?format=pdf";
             }
             else

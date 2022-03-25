@@ -28,11 +28,14 @@ namespace daemon_console
                 SiteCall siteObject = JsonConvert.DeserializeObject<SiteCall>(apiResult.ToString());
                 if (siteObject != null)
                 {
+                    //List<string> siteNames = new List<string>();
                     foreach (var site in siteObject.Value)
                     {
                         if (!site.WebUrl.Contains("/personal") && site.Id != null)
                         {
                             Console.WriteLine(site.Name);
+                            using StreamWriter siteNameFile = new StreamWriter("siteNames.csv", append: true);
+                            await siteNameFile.WriteLineAsync($"{site.Name}");
                             string siteUrl = ApiCaller.GetDriveBySite(site.SiteId);
                             object driveResult = ApiCalls.GetGraphData(siteUrl).GetAwaiter().GetResult();
                             if (driveResult.ToString().Contains("@odata.context")) 
@@ -41,10 +44,6 @@ namespace daemon_console
                                 Drive driveObject = JsonConvert.DeserializeObject<Drive>(driveResult.ToString());
                                 Console.WriteLine(driveObject.Name);
                                 var fileUrl = ApiCaller.GetFilesByDrive(driveObject.Id);
-                                if (driveObject.DataContext == null)
-                                {
-                                    Console.WriteLine("Stop 3");
-                                }
                                 List<Document> documentList = await ApiCalls.GetInsideDir(fileUrl.Item1, driveObject, fileUrl.Item2);
                                 using StreamWriter file = new StreamWriter("textData.csv", append: true);
 
@@ -59,6 +58,7 @@ namespace daemon_console
                             }
                         }
                     }
+
                 }
                
             }

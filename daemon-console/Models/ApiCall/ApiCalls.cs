@@ -219,7 +219,7 @@ namespace daemon_console.Models.ApiCalls
                     var httpClient = new HttpClient();
                     var apiCaller = new ProtectedApiCallHelper(httpClient);
                     object apiResult = await apiCaller.CallWebApiAndProcessResultASync(webUrl, result.AccessToken);
-                    Console.WriteLine(apiResult.GetType());
+                    //Console.WriteLine(apiResult.GetType());
                     if (apiResult is Byte[])
                     {
                         //Console.WriteLine(encodedPDF);
@@ -248,7 +248,7 @@ namespace daemon_console.Models.ApiCalls
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex);
+                    //Console.WriteLine(ex);
                     JObject error = ErrorHandler.CreateNewError("Real bad", "Error occured while calling for the graph API");
                     return error;
                 }
@@ -259,7 +259,6 @@ namespace daemon_console.Models.ApiCalls
         {
             Console.WriteLine("Starting textanalytics");
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
-
             string endpoint = config.TextAnEndPoint;
             string url = $"{endpoint}text/analytics/v3.2-preview.2/analyze";
 
@@ -299,41 +298,7 @@ namespace daemon_console.Models.ApiCalls
             //Console.WriteLine(response.ToString());
             return response;
         }
-        //public static async Task<object> GetWebAsync(string webApiUrl, string accessToken, HttpClient httpClient)
-        //{
-        //    if (!string.IsNullOrEmpty(accessToken))
-        //    {
-        //        var defaultRequestHeaders = httpClient.DefaultRequestHeaders;
-        //        if (defaultRequestHeaders.Accept == null || !defaultRequestHeaders.Accept.Any(m => m.MediaType == "application/json"))
-        //        {
-        //            httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        //        }
-        //        defaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-
-        //        HttpResponseMessage response = await httpClient.GetAsync(webApiUrl);
-
-        //        HttpHeaders headers = response.Content.Headers;
-        //        //Console.WriteLine(headers.ToString());
-        //        if (response.IsSuccessStatusCode)
-        //        {
-        //            string json = await response.Content.ReadAsStringAsync();
-        //            JObject result = JsonConvert.DeserializeObject(json) as JObject;
-        //            return result;
-        //        }
-        //        else
-        //        {
-        //            JObject standardError = ErrorHandler.CreateNewError("Real bad", "Call not succesfull");
-        //            return standardError;
-        //        }
-
-        //    }
-        //    else
-        //    {
-        //        JObject standardError = ErrorHandler.CreateNewError("Real bad", "No accestoken provided");
-        //        return standardError;
-        //    }
-        //}
-
+       
         private static async Task<object> GetFile(Drive driveObject, FileSP fileObject)
         {
             object result = new object();
@@ -349,13 +314,6 @@ namespace daemon_console.Models.ApiCalls
                 /*if (fileObject.Name.Contains(".pdf"))*/
                 result = await ConvertPDF(driveObject, fileObject);
             }
-
-            //else if (nonConvertable.Any(fileObject.Name.Contains))
-            //{
-            //    string fileUrl = $"/drives/{driveObject.Id}/items/{fileObject.Id}?expand=fields"; //
-            //    /*if (fileObject.Name.Contains(".pdf"))*/
-            //    result = await GetPDF(driveObject, fileObject);
-            //}
 
             else if (fileObject.Name.Contains(".pdf"))
             {
@@ -376,10 +334,6 @@ namespace daemon_console.Models.ApiCalls
             object apiResult = GetGraphData(url).GetAwaiter().GetResult(); ;
             DirRoot dirObject = JsonConvert.DeserializeObject<DirRoot>(apiResult.ToString());
             List<Document> documentList = new List<Document>();
-            if (driveObject.DataContext == null)
-            {
-                Console.WriteLine("STOP");
-            }
             if (dirObject.DataContext != null)
             {
                 foreach (var dirContent in dirObject.Files)
@@ -390,12 +344,9 @@ namespace daemon_console.Models.ApiCalls
                         Console.WriteLine(dirContent.Folder.ChildCount);
                         //Console.WriteLine(dirContent.WebUrl);
                         Console.WriteLine("Parent path: ", dirContent.ParentReference.ToString());
+                        folderPath += "";
                         var dirUrl = ApiCaller.GetFilesByDrive(driveObject.Id, dirContent.Name, folderPath);
                         Console.WriteLine(dirUrl);
-                        if (driveObject.DataContext == null)
-                        {
-                            Console.WriteLine("STOP 2");
-                        }
                         List<Document> returnedDocumentList = await GetInsideDir(dirUrl.Item1, driveObject, dirUrl.Item2);
                         foreach (var doc in returnedDocumentList)
                         {
@@ -474,11 +425,11 @@ namespace daemon_console.Models.ApiCalls
             {
 
             string[] parentPathArray = fileObject.ParentReference.Path.Split(":");
-            Console.WriteLine(parentPathArray[1]);
+            //Console.WriteLine(parentPathArray[1]);
             //string pdfUrl = $"/drives/{driveObject.Id}/root:/{fileObject.Name.Replace(" ", "%")}:/content?format=pdf";
             //
-            string pdfUrl = ApiCaller.GetConvertFilePDF(driveObject.Id, fileObject.Name);
-            Console.WriteLine(pdfUrl);
+            string pdfUrl = ApiCaller.GetConvertFilePDF(driveObject.Id, fileObject.Name, parentPathArray[1]);
+            //Console.WriteLine(pdfUrl);
             
             byte[] apiResult = (byte[]) await GetGraphData(pdfUrl);
             //byte[] resultObject = JsonConvert.DeserializeObject<byte[]>(apiResult);
