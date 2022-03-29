@@ -34,5 +34,16 @@ namespace daemon_console.Models.Analytics
 
         [JsonProperty("customMultiClassificationTasks")]
         public List<CustomMultiClassificationTask> CustomMultiClassificationTasks { get; set; }
+        [JsonProperty("completed")]
+        public int Completed { get; set; }
+
+        [JsonProperty("failed")]
+        public int Failed { get; set; }
+
+        [JsonProperty("inProgress")]
+        public int InProgress { get; set; }
+
+        [JsonProperty("total")]
+        public int Total { get; set; }
     }
 }

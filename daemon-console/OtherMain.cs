@@ -9,67 +9,75 @@ using daemon_console.Models.ApiCalls;
 using System.Linq;
 using daemon_console.Models.Errors;
 using System.Threading.Tasks;
+using daemon_console.Models.Analytics;
+using System.Text;
+using System.IO;
 
 namespace daemon_console
 {
     class OtherMain
     {
-        public static async void MainTester()
+        public static async Task MainTesterAsync()
         {
-            
+            var watch = new System.Diagnostics.Stopwatch();
+            watch.Start();
             try
             {
-                //string url = ApiCaller.GetSite();
                 string url = ApiCaller.GetSite("?search=*");
                 object apiResult = ApiCalls.GetGraphData(url).GetAwaiter().GetResult();
-                //Console.WriteLine(apiResult.ToString());    
                 SiteCall siteObject = JsonConvert.DeserializeObject<SiteCall>(apiResult.ToString());
-                //Console.WriteLine(siteObject.value.First().siteId);
                 if (siteObject != null)
                 {
                     foreach (var site in siteObject.Value)
                     {
-                        if (!site.WebUrl.Contains("/personal") && site.Name != null && site.WebUrl.Contains("Retail"))
+                        if (!site.WebUrl.Contains("/personal") && site.Id != null)
                         {
                             Console.WriteLine(site.Name);
-                            /*
-                            url = $"sites/{site.siteId}/columns";
-                            JObject result = ApiManager.RunAsync(url).GetAwaiter().GetResult();
-                            Console.WriteLine(result.ToString());*/
                             string siteUrl = ApiCaller.GetDriveBySite(site.SiteId);
                             object driveResult = ApiCalls.GetGraphData(siteUrl).GetAwaiter().GetResult();
-          
-                            //Console.WriteLine(site.Name);
-                            //Console.WriteLine(driveResult.ToString());  
-                            if (driveResult != null)
+                            if (driveResult.ToString().Contains("@odata.context")) 
+
                             {
                                 Drive driveObject = JsonConvert.DeserializeObject<Drive>(driveResult.ToString());
                                 Console.WriteLine(driveObject.Name);
-                                string dirUrl = ApiCaller.GetFilesByDrive(driveObject.Id);
-                                
-                                JObject result = await ApiCalls.GetInsideDir(dirUrl, driveObject);
-                                DirRoot dirObject = JsonConvert.DeserializeObject<DirRoot>(result.ToString());
-                                Console.WriteLine(dirObject.Files[0].Name.ToString());
-                                
+                                var fileUrl = ApiCaller.GetFilesByDrive(driveObject.Id);
+                                if (driveObject.DataContext == null)
+                                {
+                                    Console.WriteLine("Stop 3");
+                                }
+                                List<Document> documentList = await ApiCalls.GetInsideDir(fileUrl.Item1, driveObject, fileUrl.Item2);
+                                using StreamWriter file = new StreamWriter("textData.csv", append: true);
 
+                                foreach (var doc in documentList)
+                                {
+                                    
+                                    string newLine = $"{doc.Text}, {site.Name}";
+                                    await file.WriteLineAsync(newLine);
+                                }
+                                //File.WriteAllText('C:\\textdata.csv', csv.ToString());
+                                Console.WriteLine("Scanned a site");
                             }
                         }
                     }
                 }
+               
             }
             catch (Exception ex)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine(ex.Message);
                 Console.ResetColor();
-            }   
-  
+            }
+
+            watch.Stop();
+            Console.WriteLine($"Program finised in {watch.ElapsedMilliseconds/1000}s ");
+
             Console.WriteLine("Press any key to exit");
             Console.ReadKey();
         }
-        
 
-       
-        
+
+
+
     }
 }

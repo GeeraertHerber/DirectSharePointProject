@@ -48,20 +48,83 @@ namespace daemon_console.Models.ApiCalls
             defaultCertificateLoader.LoadIfNeeded(certificateDescription);
             return certificateDescription.Certificate;
         }
-        public static async Task<JObject> CallCompletedOCRASync(string responseurl)
+        public static async Task<JObject> CompleteCallAsync(string responseurl, string key)
         {
-            AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
+          
             HttpClient httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.OCRKey1}");
+            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{key}");
             var respons = await httpClient.GetAsync(responseurl);
             string json = await respons.Content.ReadAsStringAsync();
-
-            JObject ocrRespons = JsonConvert.DeserializeObject(json) as JObject;
+            JObject ocrRespons;
+            if (respons.StatusCode.ToString() == "429")
+            {
+                string retryAfter = respons.Headers.GetValues("Retry-After").First();
+                await Task.Delay(Int16.Parse(retryAfter));
+                //_ocrRespons = await CompleteCallAsync(responseurl, key);
+            }
+            ocrRespons = JsonConvert.DeserializeObject(json) as JObject;
             //Console.WriteLine(ocrRespons.ToString());
             return ocrRespons;
         }
-        public static async Task<OCRResponse> PostOCRAsync(byte[] byteArray, string url = "")
+        public static async Task<OCRResponse>  GetOCRAsync(string url, int waiter = 0)
         {
+            await Task.Delay(waiter * 1000);
+            AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
+
+            HttpClient httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.OCRKey1}");
+
+            HttpResponseMessage response = await httpClient.GetAsync(url);
+            //Console.WriteLine((int)response.StatusCode);
+            //Console.WriteLine(response.Headers.ToString());
+            //Console.WriteLine(response.Content.ToString());
+
+            //OCRResponse ocrResult = new OCRResponse();
+            //bool running = true; 
+            //while (running)
+            //{
+
+            //}
+            if ((int)response.StatusCode == 429)
+            {
+                int timer = Int32.Parse(response.Headers.GetValues("Retry-After")
+                    .First()) + 1;
+                Console.WriteLine($"Waiting for {timer} seconds");
+                OCRResponse ocrResult = await GetOCRAsync(url, timer);
+                Console.WriteLine($"After waiting for {timer} we got some result");
+                return ocrResult;
+            }
+            else if ((int)response.StatusCode == 200)
+            {
+                string stringResponse = await response.Content.ReadAsStringAsync();
+                OCRResponse ocrResult = JsonConvert.DeserializeObject<OCRResponse>(stringResponse);
+                if (ocrResult.Status == "running")
+                {
+                    Console.WriteLine("Still running");
+                    ocrResult = await GetOCRAsync(url, 2);
+                }
+                return ocrResult;
+            }
+            else
+            {
+                return null;
+            }
+
+            //if (ocrResult.Status == "running")
+            //{
+            //    int timer = 2;
+            //    Console.WriteLine($"Waiting for {timer} seconds");
+            //    ocrResult = await GetOCRAsync(url, timer);
+            //    Console.WriteLine($"After waiting for {timer} we got some result");
+            //}
+
+            
+
+            
+        }
+        public static async Task<OCRResponse> PostOCRAsync(byte[] byteArray, string url = "", int waiter = 0)
+        {
+            await Task.Delay(waiter*1000);
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
 
             HttpClient httpClient = new HttpClient();
@@ -70,28 +133,32 @@ namespace daemon_console.Models.ApiCalls
 
             body.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
             HttpResponseMessage response = await httpClient.PostAsync(url, body);
-            List<JObject> ocrResponse = new List<JObject>();
-            OCRResponse ocrObject = new OCRResponse();
-
-            if (response.Headers.TryGetValues("Operation-Location", out IEnumerable<string> responseUrl))
+            //Console.WriteLine(response.Headers.ToString());
+            //Console.WriteLine((int)response.StatusCode);
+            OCRResponse ocrResult = new OCRResponse();
+            //bool running = true; 
+            //while (running)
+            //{
+                
+            //}
+            if ((int)response.StatusCode == 429)
             {
-                //Console.WriteLine(responseUrl.First());
-                bool running = true;
-                while (running)
-
-                {
-                    ocrResponse.Add(await CallCompletedOCRASync(responseUrl.First()));
-                    if (!(ocrResponse[^1].GetValue("status").ToString() == "running"))
-                    {
-                       
-                        break;
-                    }
-                    await Task.Delay(2000);
-                }
-                ocrObject = JsonConvert.DeserializeObject< OCRResponse>(ocrResponse[^1].ToString());
+                int timer = Int32.Parse(response.Headers.GetValues("Retry-After").First()) +1;
+                Console.WriteLine($"Waiting for {timer} seconds");
+                await Task.Delay(timer);
+                ocrResult = await PostOCRAsync(byteArray, url);
+                Console.WriteLine($"After waiting for {timer} we got some result");
+            }
+            string responseUrl;
+            
+            if ((int )response.StatusCode == 202)
+            {
+                responseUrl = response.Headers.GetValues("Operation-Location").First();
+                ocrResult = await GetOCRAsync(responseUrl);
             }
 
-            return ocrObject;
+            
+            return ocrResult;
             //httpClient..Add("Content-Type", "application/octet-stream");
         }
         public static async Task<object> GetGraphData(string webUrl = null)
@@ -188,56 +255,48 @@ namespace daemon_console.Models.ApiCalls
             }
             throw new Exception("No apiresult came back");
         }
-        public static async Task<HttpResponseMessage> PostAnalyticsText(string[] content)
+        public static async Task<HttpResponseMessage> PostAnalyticsText(List<Document> documentsList)
         {
+            Console.WriteLine("Starting textanalytics");
             AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
 
             string endpoint = config.TextAnEndPoint;
             string url = $"{endpoint}text/analytics/v3.2-preview.2/analyze";
 
             HttpClient httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.SPTextKey1}");
-            string stringedContent = string.Join("", content);
+            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", $"{config.SPTextKey2}");
 
-            List<Document> documentList = new List<Document>();
-            documentList.Add(
-                        new Document
-                        {
-                            Id = "1",
-                            Language = "en",
-                            Text = stringedContent
-                        }
-                );
 
-            List<ExtractiveSummarizationTask> extractTask = new List<ExtractiveSummarizationTask>();
-            extractTask.Add(
+            List<ExtractiveSummarizationTask> extractTask = new List<ExtractiveSummarizationTask>
+            {
                 new ExtractiveSummarizationTask
                 {
                     Parameters = new Parameters
                     {
                         ModelVersion = "Latest"
                     }
-                });
+                }
+            };
 
             AnalyticsRoot analyticsObject = new AnalyticsRoot
             {
                 DisplayName = "Extracting sentiment",
                 AnalysisInput = new AnalysisInput
                 {
-                    Documents = documentList
+                    Documents = documentsList
                 },
                 Tasks = new Tasks
                 {
                     ExtractiveSummarizationTasks = extractTask
                 }
             };
-            Console.WriteLine(stringedContent);
-            string jsonString = JsonConvert.SerializeObject(analyticsObject);
+            string jsonString = JsonConvert.SerializeObject(analyticsObject, Formatting.None, new JsonSerializerSettings{NullValueHandling = NullValueHandling.Ignore});
             //body.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            Console.WriteLine("We are here");
             HttpContent httpContent = new StringContent(jsonString);
+            httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             HttpResponseMessage response = await httpClient.PostAsync(url, httpContent);
-            Console.WriteLine(response.ToString());
-            JObject json = JObject.Parse(jsonString);
+            //Console.WriteLine(response.ToString());
             return response;
         }
         //public static async Task<object> GetWebAsync(string webApiUrl, string accessToken, HttpClient httpClient)
@@ -274,6 +333,7 @@ namespace daemon_console.Models.ApiCalls
         //        return standardError;
         //    }
         //}
+
         private static async Task<object> GetFile(Drive driveObject, FileSP fileObject)
         {
             object result = new object();
@@ -309,38 +369,90 @@ namespace daemon_console.Models.ApiCalls
             return result;
 
         }
-        public static async Task<JObject> GetInsideDir(string url, Drive driveObject)
+        public static async Task<List<Document>> GetInsideDir(string url, Drive driveObject, string folderPath = "")
         {
             JObject result = new JObject();
-            object apiResult = await GetGraphData(url);
+            int globalCounter = 0;
+            object apiResult = GetGraphData(url).GetAwaiter().GetResult(); ;
             DirRoot dirObject = JsonConvert.DeserializeObject<DirRoot>(apiResult.ToString());
-            foreach (var dirContent in dirObject.Files)
+            List<Document> documentList = new List<Document>();
+            if (driveObject.DataContext == null)
             {
-                if (dirContent.Folder != null)
-                {
-                    //Console.WriteLine(dirContent.Folder.ChildCount);
-                    //Console.WriteLine(dirContent.WebUrl);
-                    //string dirUrl = ApiCaller.GetFilesByDrive(driveObject.Id, "/schematics");
-                    //result = await GetInsideDir(dirUrl, driveObject);
-                    Console.WriteLine(dirContent.Name);
-                }
-            
-                else if (dirContent.Folder == null)
-                {
-                    /* Console.WriteLine(dirContent.name);
-                     Console.WriteLine(dirContent.eTag);*/
-                    object fileResult = await GetFile(driveObject, dirContent);
-                    if (fileResult is byte[] fileByteArray)
-                    {
-                        OCRResponse ocrResult = await PostOCRAsync(fileByteArray, "https://ocrdirecttester.cognitiveservices.azure.com/vision/v3.2/read/analyze?language=en");
-                        string[] wordArray = ExtractWords(ocrResult);
-                        result = await GetAnalytics(wordArray);
-                        Console.WriteLine(result.ToString());
-                    }
-                }
-
+                Console.WriteLine("STOP");
             }
-            return result;
+            if (dirObject.DataContext != null)
+            {
+                foreach (var dirContent in dirObject.Files)
+                {
+                    if (dirContent.Folder.ChildCount != 0)
+                    {
+
+                        Console.WriteLine(dirContent.Folder.ChildCount);
+                        //Console.WriteLine(dirContent.WebUrl);
+                        Console.WriteLine("Parent path: ", dirContent.ParentReference.ToString());
+                        var dirUrl = ApiCaller.GetFilesByDrive(driveObject.Id, dirContent.Name, folderPath);
+                        Console.WriteLine(dirUrl);
+                        if (driveObject.DataContext == null)
+                        {
+                            Console.WriteLine("STOP 2");
+                        }
+                        List<Document> returnedDocumentList = await GetInsideDir(dirUrl.Item1, driveObject, dirUrl.Item2);
+                        foreach (var doc in returnedDocumentList)
+                        {
+                            documentList.Add(doc);
+                        }
+                        //Console.WriteLine(dirContent.);
+                    }
+
+                    else
+                    {
+                        /* Console.WriteLine(dirContent.name);
+                         Console.WriteLine(dirContent.eTag);*/
+                        object fileResult = await GetFile(driveObject, dirContent);
+
+                        if (fileResult is byte[] fileByteArray)
+                        {
+                            OCRResponse ocrResult = await PostOCRAsync(fileByteArray, "https://ocrdirecttester.cognitiveservices.azure.com/vision/v3.2/read/analyze?language=en");
+
+                            string[] wordArray = ExtractWords(ocrResult);
+                            Document document = new Document
+                            {
+                                Id = (documentList.Count() + 1).ToString(),
+                                Language = "en",
+                                Text = String.Join("", wordArray)
+                            };
+                            globalCounter++;
+                            Console.WriteLine($"Global documentcounter {globalCounter}");
+                            documentList.Add(document);
+
+                        }
+                        else if (fileResult is RootError)
+                        {
+                            //Console.WriteLine(fileResult.ToString());
+                           
+                        }
+                    }
+                    //Console.WriteLine(documentList.Count);
+                    if (documentList.Count > 5)
+                    {
+
+                        JObject analyticsResponse = await GetAnalytics(documentList);
+
+                        Console.WriteLine(analyticsResponse.ToString());
+                        documentList.Clear();
+                    }
+                }          
+            
+            }
+            return documentList;
+            //if (documentList.Count != 0)
+            //{
+            //    JObject analyticsResponse = await GetAnalytics(documentList);
+
+            //    Console.WriteLine(analyticsResponse.ToString());
+            //    documentList.Clear();
+            //}
+            //Console.WriteLine($"Documents scanned: {globalCounter}");
         }
 
         private static readonly Random random = new Random();
@@ -356,8 +468,11 @@ namespace daemon_console.Models.ApiCalls
             byte[] pdfFile = (byte[])await GetGraphData(url);
             return pdfFile;
         }
-        private static async Task<byte[]> ConvertPDF(Drive driveObject, FileSP fileObject)
+        private static async Task<object> ConvertPDF(Drive driveObject, FileSP fileObject)
         {
+            try
+            {
+
             string[] parentPathArray = fileObject.ParentReference.Path.Split(":");
             Console.WriteLine(parentPathArray[1]);
             //string pdfUrl = $"/drives/{driveObject.Id}/root:/{fileObject.Name.Replace(" ", "%")}:/content?format=pdf";
@@ -369,40 +484,58 @@ namespace daemon_console.Models.ApiCalls
             //byte[] resultObject = JsonConvert.DeserializeObject<byte[]>(apiResult);
             return apiResult;
 
+            }
+            catch
+            {
+                JObject error = ErrorHandler.CreateNewError("Errorcode ", "Something went wrong");
+                return error;
+            }
+
+
         }
         private static string[] ExtractWords(OCRResponse ocrObject)
         {
-            List<string> wordList = new List<string>();
-            //Console.WriteLine(wordList);
-            foreach (ReadResult result in ocrObject.AnalyzeResult.ReadResults)
+            try
             {
-                foreach (Line line in result.Lines)
+                List<string> wordList = new List<string>();
+                //Console.WriteLine(wordList);
+                foreach (ReadResult result in ocrObject.AnalyzeResult.ReadResults)
                 {
-                    Console.WriteLine(line.Text);
-                    foreach (var word in line.Text.Split(" "))
+                    foreach (Line line in result.Lines)
                     {
-                        wordList.Add(word);
-                    }
+                        //Console.WriteLine(line.Text);
+                        foreach (var word in line.Text.Split(" "))
+                        {
+                            wordList.Add(word);
+                        }
 
-                    /*foreach (string word in line.Text)
-                    {
-                        Console.WriteLine(word.Text);
-                    }*/
+                        /*foreach (string word in line.Text)
+                        {
+                            Console.WriteLine(word.Text);
+                        }*/
+                    }
                 }
+                string[] words = wordList.ToArray();
+                //JObject wordResult = JObject.Parse(stringedWordList);
+                return words;
             }
-            string[] words = wordList.ToArray();
-            string stringedWordList = String.Join("", words);
-            //JObject wordResult = JObject.Parse(stringedWordList);
-            return words;
+            catch
+            {
+                return new string[0];
+            }
+           
 
 
         }
-        private static async Task<JObject> GetAnalytics(string[] wordArray)
+        private static async Task<JObject> GetAnalytics(List<Document> documentList)
         {
-            Console.WriteLine(wordArray.Length);
-            HttpResponseMessage httpResponse = await ApiCalls.PostAnalyticsText(wordArray);
-            Console.WriteLine(httpResponse.StatusCode);
-            return JObject.Parse(httpResponse.Content.ToString());
+            //AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
+            HttpResponseMessage httpResponse = await ApiCalls.PostAnalyticsText(documentList);
+            var httpClient = new HttpClient();
+            var apiCaller = new ProtectedApiCallHelper(httpClient);
+            JObject analyticsResult = await apiCaller.CallAnalyticsResult(httpResponse.Headers.GetValues("operation-location").First().ToString());
+
+            return analyticsResult;
         }
         
 
