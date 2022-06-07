@@ -85,6 +85,7 @@ namespace daemon_console
                     }
                     catch
                     {
+                        Console.WriteLine(webApiUrl);
                         JObject errorJson = ErrorHandler.CreateNewError("Real bad", "Conversion not succesfull");
                         return errorJson;
                     }

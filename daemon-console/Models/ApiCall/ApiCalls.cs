@@ -248,6 +248,7 @@ namespace daemon_console.Models.ApiCalls
                 }
                 catch (Exception ex)
                 {
+
                     //Console.WriteLine(ex);
                     JObject error = ErrorHandler.CreateNewError("Real bad", "Error occured while calling for the graph API");
                     return error;
@@ -307,29 +308,30 @@ namespace daemon_console.Models.ApiCalls
             {
                 "csv", "doc", "docx", "odp", "ods", "odt", "pot", "potm", "potx", "pps", "ppsx", "ppsxm", "ppt", "pptm", "pptx", "rtf", "xls", "xlsx"
             };
-            
+            string[] nativeFormats = new string[]
+               {
+                    "pdf"/*, "jpeg", "png"*/
+               };
             if (fileFormats.Any(fileObject.Name.Contains))
             {
                 //string fileUrl = $"/drives/{driveObject.Id}/items/{fileObject.Id}?expand=fields"; //
                 /*if (fileObject.Name.Contains(".pdf"))*/
-                result = await ConvertPDF(driveObject, fileObject);
+                return await ConvertPDF(driveObject, fileObject);
             }
-
-            else if (fileObject.Name.Contains(".pdf"))
+            
+            else if (nativeFormats.Any(fileObject.Name.Contains))
             {
                 string url = ApiCaller.GetPDF(driveObject.Id, fileObject.Id);
-                result = await GetGraphData(url);
+                return await GetGraphData(url);
             }
             else
             {
-                result = ErrorHandler.CreateNewError("Real bad", "Not a supported documenttype");
+                return ErrorHandler.CreateNewError("Real bad", "Not a supported documenttype");
             }
-            return result;
 
         }
         public static async Task<List<Document>> GetInsideDir(string url, Drive driveObject, string folderPath = "")
         {
-            JObject result = new JObject();
             int globalCounter = 0;
             object apiResult = GetGraphData(url).GetAwaiter().GetResult(); ;
             DirRoot dirObject = JsonConvert.DeserializeObject<DirRoot>(apiResult.ToString());

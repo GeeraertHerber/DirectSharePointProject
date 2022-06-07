@@ -23,7 +23,7 @@ namespace daemon_console
     /// </summary>
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             bool testing = false;
             if (testing == true)
@@ -68,7 +68,7 @@ namespace daemon_console
             else if (testing == false)
             {
                 Console.WriteLine("Entering test program");
-                daemon_console.OtherMain.MainTesterAsync();
+                await daemon_console.OtherMain.MainTesterAsync();
             }
             Console.WriteLine("Press any key to exit");
             Console.ReadKey();
